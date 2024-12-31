@@ -263,6 +263,50 @@
             border-top: 1px solid var(--border-color);
             margin: 2rem 0;
         }
+
+        /* Add these to your existing styles */
+        .criteria-section {
+            margin-top: 4rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-top: 5px solid var(--secondary-color);
+        }
+
+        .criteria-section h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .criteria-section .markdown-content {
+            padding: 1rem 0;
+        }
+
+        .criteria-section ol {
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .criteria-section li {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .criteria-section li > ul {
+            margin-top: 0.5rem;
+            color: var(--text-color);
+            font-weight: normal;
+        }
+
+        .criteria-section strong {
+            color: var(--primary-color);
+        }
+
+        .criteria-section p {
+            margin: 0.5rem 0;
+            color: var(--text-color);
+        }
     </style>
 </head>
 <body>
@@ -319,6 +363,13 @@
         </div>
     </div>
     {% endfor %}
+
+    <div class="paper criteria-section">
+        <h2>Paper Selection Criteria</h2>
+        <div class="markdown-content">
+            {{ topics_content|safe }}
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>

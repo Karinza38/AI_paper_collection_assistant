@@ -26,8 +26,13 @@ def index():
         with open('configs/header.md', 'r') as f:
             header_content = f.read()
         
-        # Convert header markdown to HTML
+        # Load paper topics/criteria
+        with open('configs/paper_topics.txt', 'r') as f:
+            topics_content = f.read()
+        
+        # Convert markdown to HTML
         header_html = md_processor.process_content(header_content)
+        topics_html = md_processor.process_content(topics_content)
         
         # Convert the data structure to match Paper class
         papers = []
@@ -47,11 +52,12 @@ def index():
         # Get current date
         date = datetime.now().strftime("%m/%d/%Y")
         
-        # Render template with header content
+        # Render template with all content
         return render_template('paper_template.html', 
                              papers=papers, 
                              date=date, 
-                             header_content=header_html)
+                             header_content=header_html,
+                             topics_content=topics_html)
     except Exception as e:
         print(f"Error in index route: {e}")
         return f"Error loading papers: {str(e)}", 500
