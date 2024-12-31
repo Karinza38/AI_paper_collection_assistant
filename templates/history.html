@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paper History</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #eee;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            padding-top: 4rem;
+            background-color: var(--background-color);
+        }
+
+        /* Navigation bar styling */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 0.5rem 2rem;
+        }
+
+        .navbar-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover {
+            background-color: #f5f5f5;
+        }
+
+        .nav-link.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* History content styling */
+        .month-section {
+            background: white;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .month-title {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .date-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .date-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .date-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .date-card a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .paper-count {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .nav-brand {
+                font-size: 1rem;
+            }
+            
+            .date-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Today</a>
+                <a href="/history" class="nav-link active">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <h1>Paper History</h1>
+
+    {% for month, dates in papers_by_month.items() %}
+    <div class="month-section">
+        <h2 class="month-title">{{ month }}</h2>
+        <div class="date-grid">
+            {% for date in dates %}
+            <div class="date-card">
+                <a href="/?date={{ date.date }}">{{ date.display_date }}</a>
+                <div class="paper-count">
+                    {{ date.paper_count }} papers
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html> 

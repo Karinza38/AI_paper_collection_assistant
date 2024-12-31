@@ -307,9 +307,128 @@
             margin: 0.5rem 0;
             color: var(--text-color);
         }
+
+        /* Navigation bar styling */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 0.5rem 2rem;
+        }
+
+        .navbar-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .nav-date-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-date-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            width: 200px;
+            z-index: 1001;
+        }
+
+        .nav-date-dropdown.show {
+            display: block;
+        }
+
+        .nav-date-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .nav-date-link:hover {
+            background-color: #f5f5f5;
+        }
+
+        .nav-date-link.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* Adjust body padding to account for fixed navbar */
+        body {
+            padding-top: 4rem;
+        }
+
+        /* Responsive design for navbar */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .nav-brand {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
+            <div class="nav-menu">
+                <button class="nav-date-button" onclick="toggleDateDropdown()">
+                    {{ date }}
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div class="nav-date-dropdown" id="dateDropdown">
+                    {% for date_info in available_dates %}
+                        <a href="/?date={{ date_info.date }}" 
+                           class="nav-date-link {% if date_info.date == current_date %}active{% endif %}">
+                            {{ date_info.display_date }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <h1>Personalized Daily Arxiv Papers {{ date }}</h1>
     <p>Total relevant papers: {{ papers|length }}</p>
     <!-- Add header card -->
@@ -319,7 +438,6 @@
         </div>
     </div>
 
-    
     <div class="paper">
         <h2>Table of Contents</h2>
         {% for paper in papers %}
@@ -472,6 +590,41 @@
                     
                     this.disabled = false;
                 });
+            });
+        });
+
+        // Date dropdown functionality
+        function toggleDateDropdown() {
+            const dropdown = document.getElementById('dateDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.nav-date-button') && 
+                !event.target.matches('.nav-date-button *')) {
+                const dropdowns = document.getElementsByClassName('nav-date-dropdown');
+                for (let dropdown of dropdowns) {
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Smooth scroll to sections
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const navbarHeight = document.querySelector('.navbar').offsetHeight;
+                    const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+                    window.scrollTo({
+                        top: targetPosition - navbarHeight - 20,
+                        behavior: 'smooth'
+                    });
+                }
             });
         });
     </script>
