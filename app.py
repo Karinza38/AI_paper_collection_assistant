@@ -22,6 +22,13 @@ def index():
         with open('out/output.json', 'r') as f:
             papers_dict = json.load(f)
         
+        # Load header content
+        with open('configs/header.md', 'r') as f:
+            header_content = f.read()
+        
+        # Convert header markdown to HTML
+        header_html = md_processor.process_content(header_content)
+        
         # Convert the data structure to match Paper class
         papers = []
         for p in papers_dict.values():
@@ -40,8 +47,11 @@ def index():
         # Get current date
         date = datetime.now().strftime("%m/%d/%Y")
         
-        # Render template
-        return render_template('paper_template.html', papers=papers, date=date)
+        # Render template with header content
+        return render_template('paper_template.html', 
+                             papers=papers, 
+                             date=date, 
+                             header_content=header_html)
     except Exception as e:
         print(f"Error in index route: {e}")
         return f"Error loading papers: {str(e)}", 500
@@ -107,4 +117,4 @@ if __name__ == '__main__':
     # Set up Gemini API key if using Gemini
     GEMINI_API_KEY = keyconfig["GEMINI"]["api_key"]
     os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
-    app.run(debug=True) 
+    app.run(debug=True)

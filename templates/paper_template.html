@@ -268,6 +268,13 @@
 <body>
     <h1>Personalized Daily Arxiv Papers {{ date }}</h1>
     <p>Total relevant papers: {{ papers|length }}</p>
+    <!-- Add header card -->
+    <div class="header-card paper">
+        <div class="markdown-content">
+            {{ header_content|safe }}
+        </div>
+    </div>
+
     
     <div class="paper">
         <h2>Table of Contents</h2>
@@ -418,4 +425,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
