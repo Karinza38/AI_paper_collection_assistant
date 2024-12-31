@@ -118,8 +118,17 @@ def get_qa_progress(arxiv_id):
 @app.route('/get_qa/<arxiv_id>')
 def get_qa(arxiv_id):
     try:
+        # Get the date parameter or use current date
+        date_param = request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
+        
+        # Determine which file to load based on date
+        if date_param and os.path.exists(f'out/cache/{date_param}_output.json'):
+            json_file = f'out/cache/{date_param}_output.json'
+        else:
+            json_file = 'out/output.json'
+        
         # Load the paper data
-        with open('out/output.json', 'r') as f:
+        with open(json_file, 'r') as f:
             papers = json.load(f)
         
         # Find the paper with matching arxiv_id
@@ -142,8 +151,8 @@ def get_qa(arxiv_id):
         if not paper:
             return jsonify({'error': 'Paper not found'})
         
-        # Process Q&A
-        qa_results = qa_processor.process_qa(paper)
+        # Process Q&A with date for caching
+        qa_results = qa_processor.process_qa(paper, date=date_param)
         
         if 'error' in qa_results:
             return jsonify({'error': qa_results['error']})
@@ -151,13 +160,11 @@ def get_qa(arxiv_id):
         # Format Q&A with rich formatting
         formatted_content = ""
         for question, answer in qa_results.items():
-            # Format each Q&A pair
             qa_section = f"### {question}\n\n{answer}\n\n"
             formatted_content += qa_section
         
         # Process the markdown content
         html_content = md_processor.process_content(formatted_content)
-        print(html_content)
         return jsonify({'content': html_content})
         
     except Exception as e:

@@ -1,5 +1,5 @@
 import configparser
-from typing import Dict, List
+from typing import Dict, List, Optional
 import arxiv
 from arxiv_scraper import Paper
 from litellm import completion
@@ -7,6 +7,8 @@ import instructor
 from pydantic import BaseModel
 from markitdown import MarkItDown
 import os
+import json
+from datetime import datetime
 
 class QaResult(BaseModel):
     question: str
@@ -30,6 +32,34 @@ class QaProcessor:
             
         # Progress tracking
         self.progress = {}
+        
+        # Create cache directory
+        self.cache_dir = 'out/qa_cache'
+        os.makedirs(self.cache_dir, exist_ok=True)
+    
+    def get_cache_path(self, paper_id: str, date: str) -> str:
+        """Get the cache file path for a paper"""
+        return os.path.join(self.cache_dir, f"{date}_{paper_id}_qa.json")
+    
+    def get_cached_qa(self, paper_id: str, date: str) -> Optional[Dict]:
+        """Get cached Q&A results if they exist"""
+        cache_path = self.get_cache_path(paper_id, date)
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error reading cache for {paper_id}: {e}")
+        return None
+    
+    def save_qa_cache(self, paper_id: str, date: str, qa_results: Dict):
+        """Save Q&A results to cache"""
+        cache_path = self.get_cache_path(paper_id, date)
+        try:
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(qa_results, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error saving cache for {paper_id}: {e}")
     
     def get_paper_content(self, paper: Paper) -> str:
         """Get paper content using arxiv API and markitdown"""
@@ -50,17 +80,28 @@ class QaProcessor:
             print(f"Error getting paper content for {paper.arxiv_id}: {e}")
             return None
 
-    def process_qa(self, paper: Paper, progress_callback=None) -> Dict[str, str]:
-        """Process Q&A for a paper with progress tracking"""
+    def process_qa(self, paper: Paper, date: str = None, progress_callback=None) -> Dict[str, str]:
+        """Process Q&A for a paper with caching"""
         try:
-            # Initialize progress
             paper_id = paper.arxiv_id
+            
+            # Use current date if not provided
+            if date is None:
+                date = datetime.now().strftime('%Y-%m-%d')
+            
+            # Check cache first
+            cached_results = self.get_cached_qa(paper_id, date)
+            if cached_results:
+                print(f"Using cached Q&A for paper {paper_id}")
+                return cached_results
+            
+            # Initialize progress
             self.progress[paper_id] = {'current': 0, 'total': len(self.questions)}
             
             # Get paper content
             text_content = self.get_paper_content(paper)
             if not text_content:
-                text_content = paper.abstract  # Fallback to abstract if full text fails
+                text_content = paper.abstract
             
             # Process each question
             qa_results = {}
@@ -148,13 +189,15 @@ class QaProcessor:
                 except Exception as e:
                     qa_results[question] = f"Error getting answer: {str(e)}"
             
+            # Save results to cache
+            self.save_qa_cache(paper_id, date, qa_results)
+            
             return qa_results
             
         except Exception as e:
             print(f"Error processing Q&A for paper {paper.arxiv_id}: {e}")
             return {"error": str(e)}
         finally:
-            # Clean up progress tracking
             if paper.arxiv_id in self.progress:
                 del self.progress[paper.arxiv_id]
     
