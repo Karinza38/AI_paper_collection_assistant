@@ -2,14 +2,33 @@ import configparser
 import dataclasses
 import json
 import re
-from typing import List
+from typing import List, Optional
 
 import retry
-from openai import OpenAI
 from tqdm import tqdm
+import instructor
+from litellm import completion
+from pydantic import BaseModel, Field
 
 from arxiv_scraper import Paper
 from arxiv_scraper import EnhancedJSONEncoder
+import os
+
+
+
+
+
+class PaperScore(BaseModel):
+    """Model for paper scoring response from LLM"""
+    ARXIVID: str = Field(description="The arxiv ID of the paper")
+    RELEVANCE: int = Field(description="Relevance score from 1-10")
+    NOVELTY: int = Field(description="Novelty score from 1-10")
+    COMMENT: str = Field(description="Brief comment about the paper")
+
+
+class FilteredPapers(BaseModel):
+    """Model for filtered paper IDs"""
+    filtered_ids: List[str] = Field(description="List of arxiv IDs to filter out")
 
 
 def filter_by_author(all_authors, papers, author_targets, config):
@@ -58,41 +77,29 @@ def calc_price(model, usage):
         return (0.03 * usage.prompt_tokens + 0.06 * usage.completion_tokens) / 1000.0
     if (model == "gpt-3.5-turbo") or (model == "gpt-3.5-turbo-1106"):
         return (0.0015 * usage.prompt_tokens + 0.002 * usage.completion_tokens) / 1000.0
+    if 'gemini' in model:
+        return 0
 
 
-@retry.retry(tries=3, delay=2)
-def call_chatgpt(full_prompt, openai_client, model):
-    return openai_client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": full_prompt}],
-        temperature=0.0,
-        seed=0,
-    )
 
+def run_and_parse_chatgpt(full_prompt, client, config):
+    try:
+        response = client.chat.completions.create(
+            model=config["SELECTION"]["model"],
+            messages=[{"role": "user", "content": full_prompt}],
+            max_tokens=4096,
+            response_model=List[PaperScore],
+            temperature=0.0,
+            max_retries=3,
+            timeout=10,
+            #api_key=config["GEMINI"]["api_key"]
 
-def run_and_parse_chatgpt(full_prompt, openai_client, config):
-    # just runs the chatgpt prompt, tries to parse the resulting JSON
-    completion = call_chatgpt(full_prompt, openai_client, config["SELECTION"]["model"])
-    out_text = completion.choices[0].message.content
-    out_text = re.sub("```jsonl\n", "", out_text)
-    out_text = re.sub("```", "", out_text)
-    out_text = re.sub(r"\n+", "\n", out_text)
-    out_text = re.sub("},", "}", out_text).strip()
-    # split out_text line by line and parse each as a json.
-    json_dicts = []
-    for line in out_text.split("\n"):
-        # try catch block to attempt to parse json
-        try:
-            json_dicts.append(json.loads(line))
-        except Exception as ex:
-            if config["OUTPUT"].getboolean("debug_messages"):
-                print("Exception happened " + str(ex))
-                print("Failed to parse LM output as json")
-                print(out_text)
-                print("RAW output")
-                print(completion.choices[0].message.content)
-            continue
-    return json_dicts, calc_price(config["SELECTION"]["model"], completion.usage)
+        )
+        return [score.model_dump() for score in response], 0.0  # Cost calculation not implemented for litellm
+    except Exception as ex:
+        if config["OUTPUT"].getboolean("debug_messages"):
+            print("Exception happened " + str(ex))
+        return [], 0.0
 
 
 def paper_to_string(paper_entry: Paper) -> str:
@@ -119,9 +126,9 @@ def batched(items, batch_size):
 
 
 def filter_papers_by_title(
-    papers, config, openai_client, base_prompt, criterion
+    papers, config, client, base_prompt, criterion
 ) -> List[Paper]:
-    filter_postfix = 'Identify any papers that are absolutely and completely irrelavent to the criteria, and you are absolutely sure your friend will not enjoy, formatted as a list of arxiv ids like ["ID1", "ID2", "ID3"..]. Be extremely cautious, and if you are unsure at all, do not add a paper in this list. You will check it in detail later.\n Directly respond with the list, do not add ANY extra text before or after the list. Even if every paper seems irrelevant, please keep at least TWO papers'
+    filter_postfix = 'Identify any papers that are absolutely and completely irrelavent to the criteria, and you are absolutely sure your friend will not enjoy. Return a list of arxiv IDs to filter out. Be extremely cautious, and if you are unsure at all, do not add a paper in this list. You will check it in detail later.'
     batches_of_papers = batched(papers, 20)
     final_list = []
     cost = 0
@@ -130,12 +137,15 @@ def filter_papers_by_title(
         full_prompt = (
             base_prompt + "\n " + criterion + "\n" + papers_string + filter_postfix
         )
-        model = config["SELECTION"]["model"]
-        completion = call_chatgpt(full_prompt, openai_client, model)
-        cost += calc_price(model, completion.usage)
-        out_text = completion.choices[0].message.content
+        
         try:
-            filtered_set = set(json.loads(out_text))
+            response = client.chat.completions.create(
+                model=config["SELECTION"]["model"],
+                messages=[{"role": "user", "content": full_prompt}],
+                max_tokens=1024,
+                response_model=FilteredPapers
+            )
+            filtered_set = set(response.filtered_ids)
             for paper in batch:
                 if paper.arxiv_id not in filtered_set:
                     final_list.append(paper)
@@ -143,9 +153,8 @@ def filter_papers_by_title(
                     print("Filtered out paper " + paper.arxiv_id)
         except Exception as ex:
             print("Exception happened " + str(ex))
-            print("Failed to parse LM output as list " + out_text)
-            print(completion)
             continue
+            
     return final_list, cost
 
 
@@ -154,7 +163,7 @@ def paper_to_titles(paper_entry: Paper) -> str:
 
 
 def run_on_batch(
-    paper_batch, base_prompt, criterion, postfix_prompt, openai_client, config
+    paper_batch, base_prompt, criterion, postfix_prompt, client, config
 ):
     batch_str = [paper_to_string(paper) for paper in paper_batch]
     full_prompt = "\n".join(
@@ -165,12 +174,12 @@ def run_on_batch(
             postfix_prompt,
         ]
     )
-    json_dicts, cost = run_and_parse_chatgpt(full_prompt, openai_client, config)
+    json_dicts, cost = run_and_parse_chatgpt(full_prompt, client, config)
     return json_dicts, cost
 
 
 def filter_by_gpt(
-    all_authors, papers, config, openai_client, all_papers, selected_papers, sort_dict
+    all_authors, papers, config, client, all_papers, selected_papers, sort_dict
 ):
     # deal with config parsing
     with open("configs/base_prompt.txt", "r") as f:
@@ -180,14 +189,14 @@ def filter_by_gpt(
     with open("configs/postfix_prompt.txt", "r") as f:
         postfix_prompt = f.read()
     all_cost = 0
-    if config["SELECTION"].getboolean("run_openai"):
+    if config["SELECTION"].getboolean("run_litellm"):
         # filter first by hindex of authors to reduce costs.
         paper_list = filter_papers_by_hindex(all_authors, papers, config)
         if config["OUTPUT"].getboolean("debug_messages"):
             print(str(len(paper_list)) + " papers after hindex filtering")
         cost = 0
         paper_list, cost = filter_papers_by_title(
-            paper_list, config, openai_client, base_prompt, criterion
+            paper_list, config, client, base_prompt, criterion
         )
         if config["OUTPUT"].getboolean("debug_messages"):
             print(
@@ -203,7 +212,7 @@ def filter_by_gpt(
         for batch in tqdm(batch_of_papers):
             scored_in_batch = []
             json_dicts, cost = run_on_batch(
-                batch, base_prompt, criterion, postfix_prompt, openai_client, config
+                batch, base_prompt, criterion, postfix_prompt, client, config
             )
             all_cost += cost
             for jdict in json_dicts:
@@ -235,13 +244,22 @@ def filter_by_gpt(
 
 
 if __name__ == "__main__":
+    from litellm import validate_environment
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
     # now load the api keys
     keyconfig = configparser.ConfigParser()
     keyconfig.read("configs/keys.ini")
-    S2_API_KEY = keyconfig["KEYS"]["semanticscholar"]
-    openai_client = OpenAI(api_key=keyconfig["KEYS"]["openai"])
+    #S2_API_KEY = keyconfig["KEYS"]["semanticscholar"]
+
+    GEMINI_API_KEY = keyconfig["GEMINI"]["api_key"]
+    os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+
+    print(validate_environment('gemini/gemini-1.5-flash'))
+    
+    # Initialize the LiteLLM client with Instructor
+    client = instructor.from_litellm(completion)
+
     # deal with config parsing
     with open("configs/base_prompt.txt", "r") as f:
         base_prompt = f.read()
@@ -251,7 +269,6 @@ if __name__ == "__main__":
         postfix_prompt = f.read()
     # loads papers from 'in/debug_papers.json' and filters them
     with open("in/debug_papers.json", "r") as f:
-        # with open("in/gpt_paper_batches.debug-11-10.json", "r") as f:
         paper_list_in_dict = json.load(f)
     papers = [
         [
@@ -271,7 +288,7 @@ if __name__ == "__main__":
     total_cost = 0
     for batch in tqdm(papers):
         json_dicts, cost = run_on_batch(
-            batch, base_prompt, criterion, postfix_prompt, openai_client, config
+            batch, base_prompt, criterion, postfix_prompt, client, config
         )
         total_cost += cost
         for paper in batch:
@@ -283,7 +300,6 @@ if __name__ == "__main__":
             }
             sort_dict[jdict["ARXIVID"]] = jdict["RELEVANCE"] + jdict["NOVELTY"]
 
-        # sort the papers by relevance and novelty
     print("total cost:" + str(total_cost))
     keys = list(sort_dict.keys())
     values = list(sort_dict.values())

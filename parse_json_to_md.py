@@ -42,33 +42,49 @@ def render_title_and_author(paper_entry: dict, idx: int) -> str:
     return paper_string
 
 
-def render_md_string(papers_dict):
-    # header
+def render_md_string(papers: dict) -> str:
+    today = datetime.now().strftime("%m/%d/%Y")
+    md_string = f"# Personalized Daily Arxiv Papers {today}\n"
+    md_string += f"Total relevant papers: {len(papers)}\n\n"
+    md_string += "Paper selection prompt and criteria at the bottom\n\n"
+    md_string += "Table of contents with paper titles:\n\n"
+
+    # First create table of contents
+    for i, (paper_id, paper) in enumerate(papers.items()):
+        md_string += f"{i}. [{paper.title}](#paper{i})\n"
+        md_string += f"**Authors:** {', '.join(paper.authors)}\n\n"
+
+    md_string += "---\n"
+
+    # Then create the actual content
+    for i, (paper_id, paper) in enumerate(papers.items()):
+        md_string += f"## {i}. [{paper.title}]({paper.url}) <a id='paper{i}'></a>\n"
+        md_string += f"**ArXiv ID:** {paper.arxiv_id}\n"
+        md_string += f"**Authors:** {', '.join(paper.authors)}\n\n"
+        md_string += f"**Abstract:** {paper.abstract}\n\n"
+        if hasattr(paper, "comment"):
+            md_string += f"**Comment:** {paper.comment}\n"
+        if hasattr(paper, "relevance"):
+            md_string += f"**Relevance:** {paper.relevance}\n"
+        if hasattr(paper, "novelty"):
+            md_string += f"**Novelty:** {paper.novelty}\n"
+        
+        # Add a button for Q&A
+        md_string += f'''
+        <div class="qa-section">
+            <button class="qa-button" data-arxiv-id="{paper.arxiv_id}" onclick="return false;">Show Q&A</button>
+            <div id="qa-{paper.arxiv_id}" class="qa-content" style="display: none;"></div>
+        </div>
+        '''
+        
+        md_string += "---\n\n"
+
+    # Add the paper selection prompt at the bottom
     with open("configs/paper_topics.txt", "r") as f:
-        criterion = f.read()
-    output_string = (
-        "# Personalized Daily Arxiv Papers "
-        + datetime.today().strftime("%m/%d/%Y")
-        + "\nTotal relevant papers: "
-        + str(len(papers_dict))
-        + "\n\n"
-        + "Paper selection prompt and criteria at the bottom\n\n"
-        + "Table of contents with paper titles:\n\n"
-    )
-    title_strings = [
-        render_title_and_author(paper, i)
-        for i, paper in enumerate(papers_dict.values())
-    ]
-    output_string = output_string + "\n".join(title_strings) + "\n---\n"
-    # render each paper
-    paper_strings = [
-        render_paper(paper, i) for i, paper in enumerate(papers_dict.values())
-    ]
-    # join all papers into one string
-    output_string = output_string + "\n".join(paper_strings)
-    output_string += "\n\n---\n\n"
-    output_string += f"## Paper selection prompt\n{criterion}"
-    return output_string
+        md_string += "\n\n## Paper selection prompt\n"
+        md_string += f.read()
+
+    return md_string
 
 
 if __name__ == "__main__":

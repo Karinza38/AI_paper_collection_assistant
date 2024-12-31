@@ -2,6 +2,7 @@ import json
 import configparser
 import os
 import time
+from datetime import datetime
 
 from openai import OpenAI
 from requests import Session
@@ -10,26 +11,27 @@ import io
 
 from retry import retry
 from tqdm import tqdm
+from litellm import completion
+import instructor
 
-from arxiv_scraper import get_papers_from_arxiv_rss_api
+from arxiv_scraper import get_papers_from_arxiv_rss_api, Paper, EnhancedJSONEncoder
 from filter_papers import filter_by_author, filter_by_gpt
 from parse_json_to_md import render_md_string
 from push_to_slack import push_to_slack
-from arxiv_scraper import EnhancedJSONEncoder
+from markitdown import MarkItDown
+
+import arxiv  # Import the arxiv library
 
 T = TypeVar("T")
-
 
 def batched(items: list[T], batch_size: int) -> list[T]:
     # takes a list and returns a list of list with batch_size
     return [items[i : i + batch_size] for i in range(0, len(items), batch_size)]
 
-
 def argsort(seq):
     # native python version of an 'argsort'
     # http://stackoverflow.com/questions/3071415/efficient-method-to-calculate-the-rank-vector-of-a-list-in-python
     return sorted(range(len(seq)), key=seq.__getitem__)
-
 
 def get_paper_batch(
     session: Session,
@@ -63,7 +65,6 @@ def get_paper_batch(
         response.raise_for_status()
         return response.json()
 
-
 def get_author_batch(
     session: Session,
     ids: list[str],
@@ -95,7 +96,6 @@ def get_author_batch(
         response.raise_for_status()
         return response.json()
 
-
 @retry(tries=3, delay=2.0)
 def get_one_author(session, author: str, S2_API_KEY: str) -> str:
     # query the right endpoint https://api.semanticscholar.org/graph/v1/author/search?query=adam+smith
@@ -120,9 +120,8 @@ def get_one_author(session, author: str, S2_API_KEY: str) -> str:
             else:
                 return None
         except Exception as ex:
-            print("exception happened" + str(ex))
+            print("exception happened: " + str(ex))
             return None
-
 
 def get_papers(
     ids: list[str], S2_API_KEY: str, batch_size: int = 100, **kwargs
@@ -133,7 +132,6 @@ def get_papers(
         # take advantage of S2 batch paper endpoint
         for ids_batch in batched(ids, batch_size=batch_size):
             yield from get_paper_batch(session, ids_batch, S2_API_KEY, **kwargs)
-
 
 def get_authors(
     all_authors: list[str], S2_API_KEY: str, batch_size: int = 100, **kwargs
@@ -153,7 +151,6 @@ def get_authors(
                 time.sleep(1.0)
     return author_metadata_dict
 
-
 def get_papers_from_arxiv(config):
     area_list = config["FILTERING"]["arxiv_category"].split(",")
     paper_set = set()
@@ -163,7 +160,6 @@ def get_papers_from_arxiv(config):
     if config["OUTPUT"].getboolean("debug_messages"):
         print("Number of papers:" + str(len(paper_set)))
     return paper_set
-
 
 def parse_authors(lines):
     # parse the comma-separated author list, ignoring lines that are empty and starting with #
@@ -179,19 +175,100 @@ def parse_authors(lines):
         authors.append(author_split[0].strip())
     return authors, author_ids
 
+def ask_questions_for_paper(paper: Paper, questions: list[str], client, config):
+    """
+    Downloads the PDF content of a paper and asks a series of questions using an AI model.
+
+    Args:
+        paper: The Paper object.
+        questions: A list of questions to ask.
+        client: The AI client.
+
+    Returns:
+        A dictionary where keys are questions and values are the AI's answers.
+    """
+    try:
+        search = arxiv.Search(id_list=[paper.arxiv_id])
+        results = list(arxiv.Client().results(search))
+        if results:
+            paper_entry = next(results)
+            pdf_filename = f"out/pdfs/{paper.arxiv_id}.pdf"
+            paper_entry.download_pdf(filename=pdf_filename)
+
+            md = MarkItDown()
+            result = md.convert(pdf_filename)
+            text_content = result.text_content
+
+            question_answers = {}
+            conversation_history = []
+            
+            for question in questions:
+                # Include previous Q&A pairs in the context
+                qa_context = "\n\n".join([
+                    f"Q: {q}\nA: {a}" for q, a in question_answers.items()
+                ])
+                
+                prompt = f"""Paper Content:
+                            {text_content[:50000]}
+
+                            Previous Questions and Answers:
+                            {qa_context}
+
+                            Current Question: {question}
+
+                            Please answer the current question, taking into account the previous Q&A if relevant."""
+
+                response = client.chat.completions.create(
+                    model=config["SELECTION"]["model"],
+                    messages=[{"role": "user", "content": prompt}],
+                    max_retries=3,
+                    timeout=10,
+                )
+                question_answers[question] = response.choices[0].message.content
+            return question_answers
+        else:
+            return {"error": "PDF not found"}
+    except Exception as e:
+        print(f"Error processing paper {paper.arxiv_id}: {e}")
+        return {"error": str(e)}
+
+def generate_qa_markdown(paper: Paper, question_answers: dict):
+    """
+    Generates a markdown file for a paper containing questions and answers.
+
+    Args:
+        paper: The Paper object.
+        question_answers: A dictionary of questions and their answers.
+
+    Returns:
+        None
+    """
+    os.makedirs("out/papers", exist_ok=True)
+    filepath = f"out/papers/{paper.arxiv_id}.md"
+    with open(filepath, "w") as f:
+        f.write(f"# {paper.title}\n\n")
+        for question, answer in question_answers.items():
+            f.write(f"**Q:** {question}\n\n")
+            f.write(f"**A:** {answer}\n\n")
 
 if __name__ == "__main__":
     # now load config.ini
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
 
-    S2_API_KEY = os.environ.get("S2_KEY")
-    OAI_KEY = os.environ.get("OAI_KEY")
-    if OAI_KEY is None:
-        raise ValueError(
-            "OpenAI key is not set - please set OAI_KEY to your OpenAI key"
-        )
-    openai_client = OpenAI(api_key=OAI_KEY)
+    # Load API keys from environment or config
+    keyconfig = configparser.ConfigParser()
+    keyconfig.read("configs/keys.ini")
+
+    # Set up Gemini API key if using Gemini
+    GEMINI_API_KEY = keyconfig["GEMINI"]["api_key"]
+    os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+    # S2_API_KEY = keyconfig["SEMANTIC_SCHOLAR"]["api_key"]
+    S2_API_KEY = None
+
+    # Initialize the LiteLLM client with Instructor instead of OpenAI
+    client = instructor.from_litellm(completion)
+
     # load the author list
     with io.open("configs/authors.txt", "r") as fopen:
         author_names, author_ids = parse_authors(fopen.readlines())
@@ -224,15 +301,29 @@ if __name__ == "__main__":
     selected_papers, all_papers, sort_dict = filter_by_author(
         all_authors, papers, author_id_set, config
     )
+    # Pass the instructor client instead of OpenAI client
     filter_by_gpt(
         all_authors,
         papers,
         config,
-        openai_client,
+        client,  # Now passing the instructor client
         all_papers,
         selected_papers,
         sort_dict,
     )
+
+    # Load preset questions
+    with open("configs/questions.txt", "r") as f:
+        preset_questions = [line.strip() for line in f.readlines()]
+
+    # Generate question-answer markdown for each selected paper
+    for paper_id in selected_papers:
+        paper = selected_papers[paper_id]
+        question_answers = ask_questions_for_paper(paper, preset_questions, client)
+        if "error" not in question_answers:
+            generate_qa_markdown(paper, question_answers)
+        else:
+            print(f"Skipping QA generation for {paper.arxiv_id} due to error: {question_answers['error']}")
 
     # sort the papers by relevance and novelty
     keys = list(sort_dict.keys())

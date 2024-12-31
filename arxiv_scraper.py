@@ -28,7 +28,34 @@ class Paper:
 
     # add a hash function using arxiv_id
     def __hash__(self):
+        # __hash__ is a method that returns a hash of the object. 
+        # we can use this to hash the object by its arxiv_id
         return hash(self.arxiv_id)
+
+    def __init__(
+        self,
+        arxiv_id=None,
+        ARXIVID=None,
+        title=None,
+        abstract=None,
+        authors=None,
+        url=None,
+        comment=None,
+        COMMENT=None,
+        relevance=None,
+        RELEVANCE=None,
+        novelty=None,
+        NOVELTY=None,
+        **kwargs
+    ):
+        self.arxiv_id = arxiv_id or ARXIVID
+        self.title = title
+        self.abstract = abstract
+        self.authors = authors
+        self.url = url or f"https://arxiv.org/abs/{self.arxiv_id}"
+        self.comment = comment or COMMENT
+        self.relevance = relevance or RELEVANCE
+        self.novelty = novelty or NOVELTY
 
 
 def is_earlier(ts1, ts2):
