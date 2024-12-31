@@ -17,9 +17,10 @@
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
-            --background-color: #f5f5f5;
+            --background-color: #f8f9fa;
             --text-color: #333;
-            --border-color: #eee;
+            --border-color: #e0e0e0;
+            --box-shadow-color: rgba(0,0,0,0.1);
         }
 
         body {
@@ -38,8 +39,8 @@
             padding-bottom: 0.3rem;
         }
         
-        h1 { font-size: 2.5rem; margin-bottom: 2rem; }
-        h2 { font-size: 1.8rem; margin-top: 2rem; }
+        h1 { font-size: 2.2rem; margin-bottom: 1.8rem; }
+        h2 { font-size: 1.6rem; margin-top: 1.8rem; }
         
         a {
             color: var(--secondary-color);
@@ -51,20 +52,20 @@
         
         .paper {
             background: white;
-            padding: 2rem;
-            margin: 1.5rem 0;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 10px;
+            box-shadow: 0 3px 5px var(--box-shadow-color);
         }
         
         .qa-button {
             background-color: var(--secondary-color);
             color: white;
             border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 6px;
+            padding: 0.7rem 1.3rem;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9rem;
             transition: background-color 0.3s;
         }
         
@@ -74,64 +75,64 @@
         
         .qa-content {
             background: white;
-            padding: 2rem;
-            margin: 1rem 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin: 0.8rem 0;
+            border-radius: 6px;
+            box-shadow: 0 2px 3px var(--box-shadow-color);
         }
         
         .qa-pair {
-            margin-bottom: 2rem;
-            padding: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 0.8rem;
             border-left: 4px solid var(--secondary-color);
             background-color: #f8f9fa;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 6px 6px 0;
         }
         
         .question {
             color: var(--primary-color);
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
         }
         
         .answer {
             color: var(--text-color);
-            margin-left: 1rem;
+            margin-left: 0.8rem;
         }
         
         /* Math formula styling */
         .math {
             overflow-x: auto;
-            padding: 1rem 0;
+            padding: 0.8rem 0;
         }
         
         /* Code block styling */
         pre {
             background: #282c34;
-            padding: 1rem;
-            border-radius: 8px;
+            padding: 0.8rem;
+            border-radius: 6px;
             overflow-x: auto;
-            margin: 1rem 0;
+            margin: 0.8rem 0;
         }
         
         code {
             font-family: 'Fira Code', monospace;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         
         /* Progress bar styling */
         .progress-container {
-            margin: 1rem 0;
+            margin: 0.8rem 0;
             background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.2rem;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px var(--box-shadow-color);
         }
         
         .progress-bar {
-            height: 8px;
+            height: 6px;
             background-color: #eee;
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
         }
         
@@ -144,9 +145,9 @@
         
         .progress-text {
             text-align: center;
-            margin-top: 0.8rem;
+            margin-top: 0.6rem;
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
         
         /* Markdown content styling */

@@ -7,3 +7,4 @@ venv
 .idea
 .aider*
 .env
+out/
