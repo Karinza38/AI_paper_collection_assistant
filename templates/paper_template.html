@@ -471,7 +471,7 @@
         {% endif %}
 
         <div class="qa-section">
-            <button class="qa-button" data-arxiv-id="{{ paper.arxiv_id }}">Show Q&A</button>
+            <button class="qa-button" data-arxiv-id="{{ paper.arxiv_id or paper.get('ARXIVID', '') }}">Show Q&A</button>
             <div class="progress-container" id="progress-{{ paper.arxiv_id }}" style="display: none;">
                 <div class="progress-bar">
                     <div class="progress-fill"></div>
