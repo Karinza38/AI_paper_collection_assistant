@@ -61,13 +61,21 @@ def cache_daily_output():
     global main_progress
     today = datetime.now().strftime('%Y-%m-%d')
     
-    # Reset progress when starting
-    main_progress = {
-        'running': True,
-        'current': 0,
-        'total': 0,
-        'message': 'Starting paper collection...'
-    }
+    # Only reset progress if main.py is actually running
+    if not os.path.exists('out/output.json'):
+        main_progress = {
+            'running': True,
+            'current': 0,
+            'total': 0,
+            'message': 'Starting paper collection...'
+        }
+    else:
+        main_progress = {
+            'running': False,
+            'current': 0,
+            'total': 0,
+            'message': ''
+        }
     
     # Cache JSON output
     if os.path.exists('out/output.json'):
