@@ -39,7 +39,7 @@
     ENV SLACK_CHANNEL_ID=""                                                                                      
                                                                                                                  
     # Expose the port the app runs on                                                                            
-    EXPOSE 8111                                                                                                  
+    EXPOSE 8000                                                                                                  
                                                                                                                  
     # Create start script                                                                                       
     RUN echo "#!/bin/bash\ncron\ngunicorn --bind 0.0.0.0:8000 app:app" > /app/start.sh                           
