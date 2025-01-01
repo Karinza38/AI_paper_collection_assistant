@@ -42,8 +42,8 @@
     EXPOSE 8000                                                                                                  
                                                                                                                  
     # Create start script                                                                                       
-    RUN echo "#!/bin/bash\ncron\ngunicorn --bind 0.0.0.0:8000 app:app" > /app/start.sh                           
+    RUN echo "#!/bin/bash\npython main.py >> /var/log/cron.log 2>&1\ncron\ngunicorn --bind 0.0.0.0:8000 app:app" > /app/start.sh                           
     RUN chmod +x /app/start.sh                                                                                   
                                                                                                                  
-    # Command to run both cron and gunicorn                                                                      
+    # Command to run main.py immediately, then start cron and gunicorn                                                                      
     CMD ["/app/start.sh"]   
