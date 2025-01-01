@@ -53,24 +53,54 @@
         }
 
         .nav-menu {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+            position: relative;
+            display: inline-block;
         }
 
-        .nav-link {
-            color: var(--text-color);
-            text-decoration: none;
+        .nav-date-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
             padding: 0.5rem 1rem;
             border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-date-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            width: 200px;
+            z-index: 1001;
+        }
+
+        .nav-date-dropdown.show {
+            display: block;
+        }
+
+        .nav-date-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
             transition: background-color 0.3s;
         }
 
-        .nav-link:hover {
+        .nav-date-link:hover {
             background-color: #f5f5f5;
         }
 
-        .nav-link.active {
+        .nav-date-link.active {
             background-color: var(--secondary-color);
             color: white;
         }
@@ -143,8 +173,8 @@
         <div class="navbar-content">
             <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
             <div class="nav-menu">
-                <a href="/" class="nav-link">Today</a>
-                <a href="/history" class="nav-link active">History</a>
+                <a href="/" class="nav-date-link {% if not request.args.get('date') %}active{% endif %}">Today</a>
+                <a href="/history" class="nav-date-link active">History</a>
             </div>
         </div>
     </nav>
