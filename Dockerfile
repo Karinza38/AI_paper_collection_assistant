@@ -30,6 +30,14 @@
     # Create the log file to be able to run tail                                                                 
     RUN touch /var/log/cron.log                                                                                   
                                                                                                                  
+    # Add build arguments for config files
+    ARG HEADER_FILE=configs/header.md
+    ARG PAPER_TOPICS_FILE=configs/paper_topics.txt
+    
+    # Copy config files
+    COPY ${HEADER_FILE} /app/configs/header.md
+    COPY ${PAPER_TOPICS_FILE} /app/configs/paper_topics.txt
+    
     # Set environment variables                                                                                  
     ENV GEMINI_API_KEY=""                                                                                        
     ENV SLACK_KEY=""                                                                                             
