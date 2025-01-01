@@ -185,11 +185,11 @@ def history():
             month_key = date_obj.strftime('%B %Y')
             
             # Load papers for this date
-            json_file = f'out/cache/{date_info["date"]}_output.json'
+            md_file = f'out/{date_info["date"]}_output.md'
             try:
-                with open(json_file, 'r') as f:
-                    papers_dict = json.load(f)
-                    paper_count = len(papers_dict)
+                with open(md_file, 'r') as f:
+                    md_content = f.read()
+                    paper_count = len(re.findall(r'## \d+\. \[', md_content))
             except:
                 paper_count = 0
             

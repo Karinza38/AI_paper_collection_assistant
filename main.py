@@ -340,7 +340,8 @@ if __name__ == "__main__":
             with open(config["OUTPUT"]["output_path"] + "output.json", "w") as outfile:
                 json.dump(selected_papers, outfile, indent=4)
         if config["OUTPUT"].getboolean("dump_md"):
-            with open(config["OUTPUT"]["output_path"] + "output.md", "w") as f:
+            today = datetime.now().strftime("%Y-%m-%d")
+            with open(config["OUTPUT"]["output_path"] + f"{today}_output.md", "w") as f:
                 f.write(render_md_string(selected_papers))
         # only push to slack for non-empty dicts
         if config["OUTPUT"].getboolean("push_to_slack"):
