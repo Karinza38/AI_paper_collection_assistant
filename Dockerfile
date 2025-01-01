@@ -31,12 +31,7 @@
     RUN touch /var/log/cron.log                                                                                   
                                                                                                                  
     # Copy default config files
-    COPY configs/header.md /app/configs/header.md
-    COPY configs/paper_topics.txt /app/configs/paper_topics.txt
-    COPY configs/postfix_prompt.txt /app/configs/postfix_prompt.txt
-    COPY configs/authors.txt /app/configs/authors.txt
-    COPY configs/base_prompt.txt /app/configs/base_prompt.txt
-    COPY configs/questions.txt /app/configs/questions.txt
+    COPY configs /app/configs
     
     # Set environment variables                                                                                  
     ENV GEMINI_API_KEY=""                                                                                        
