@@ -8,10 +8,32 @@ import markdown
 from qa_processor import QaProcessor
 from markdown_processor import MarkdownProcessor
 import glob
+from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 qa_processor = QaProcessor()
 md_processor = MarkdownProcessor()
+
+def get_cached_dates():
+    """Get list of available cached dates"""
+    cache_files = glob.glob('out/cache/*_output.json')
+    dates = []
+    for file in cache_files:
+        # Extract date from filename (format: YYYY-MM-DD_output.json)
+        date_str = os.path.basename(file).replace('_output.json', '').split('_')[0]
+        try:
+            # Verify it's a valid date
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            dates.append({
+                'date': date_str,
+                'display_date': date_obj.strftime('%B %d, %Y')
+            })
+        except ValueError:
+            continue
+    
+    # Sort dates in reverse chronological order
+    dates.sort(key=lambda x: x['date'], reverse=True)
+    return dates
 
 def get_cached_dates():
     """Get list of available cached dates"""
