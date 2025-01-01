@@ -30,6 +30,9 @@
     # Create the log file to be able to run tail                                                                 
     RUN touch /var/log/cron.log                                                                                   
                                                                                                                  
+    # Create cache directory
+    RUN mkdir -p /app/out/cache
+    
     # Copy default config files
     COPY configs /app/configs
     

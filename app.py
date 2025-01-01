@@ -82,8 +82,15 @@ def cache_daily_output():
         os.makedirs('out/cache', exist_ok=True)
         cache_path = f'out/cache/{today}_output.json'
         if not os.path.exists(cache_path):
+            # Cache papers
             with open('out/output.json', 'r') as src, open(cache_path, 'w') as dst:
                 dst.write(src.read())
+            
+            # Cache authors if the file exists
+            if os.path.exists('out/all_authors.debug.json'):
+                authors_cache_path = f'out/cache/{today}_authors.json'
+                with open('out/all_authors.debug.json', 'r') as src, open(authors_cache_path, 'w') as dst:
+                    dst.write(src.read())
 
 @app.route('/')
 def index():
@@ -231,6 +238,18 @@ main_progress = {
 def get_main_progress():
     """Get the current progress of main.py execution"""
     return jsonify(main_progress)
+
+@app.route('/get_authors/<date>')
+def get_authors(date):
+    """Get cached author data for a specific date"""
+    try:
+        authors_path = f'out/cache/{date}_authors.json'
+        if os.path.exists(authors_path):
+            with open(authors_path, 'r') as f:
+                return jsonify(json.load(f))
+        return jsonify({'error': 'Author data not found for this date'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/history')
 def history():
