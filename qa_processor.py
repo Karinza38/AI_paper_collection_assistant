@@ -37,13 +37,13 @@ class QaProcessor:
         self.cache_dir = 'out/qa_cache'
         os.makedirs(self.cache_dir, exist_ok=True)
     
-    def get_cache_path(self, paper_id: str, date: str) -> str:
+    def get_cache_path(self, paper_id: str) -> str:
         """Get the cache file path for a paper"""
-        return os.path.join(self.cache_dir, f"{date}_{paper_id}_qa.json")
+        return os.path.join(self.cache_dir, f"{paper_id}_qa.json")
     
-    def get_cached_qa(self, paper_id: str, date: str) -> Optional[Dict]:
+    def get_cached_qa(self, paper_id: str) -> Optional[Dict]:
         """Get cached Q&A results if they exist"""
-        cache_path = self.get_cache_path(paper_id, date)
+        cache_path = self.get_cache_path(paper_id)
         if os.path.exists(cache_path):
             try:
                 with open(cache_path, 'r', encoding='utf-8') as f:
@@ -52,9 +52,9 @@ class QaProcessor:
                 print(f"Error reading cache for {paper_id}: {e}")
         return None
     
-    def save_qa_cache(self, paper_id: str, date: str, qa_results: Dict):
+    def save_qa_cache(self, paper_id: str, qa_results: Dict):
         """Save Q&A results to cache"""
-        cache_path = self.get_cache_path(paper_id, date)
+        cache_path = self.get_cache_path(paper_id)
         try:
             with open(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(qa_results, f, ensure_ascii=False, indent=2)
@@ -80,17 +80,13 @@ class QaProcessor:
             print(f"Error getting paper content for {paper.arxiv_id}: {e}")
             return None
 
-    def process_qa(self, paper: Paper, date: str = None, progress_callback=None) -> Dict[str, str]:
+    def process_qa(self, paper: Paper, progress_callback=None) -> Dict[str, str]:
         """Process Q&A for a paper with caching"""
         try:
             paper_id = paper.arxiv_id
             
-            # Use current date if not provided
-            if date is None:
-                date = datetime.now().strftime('%Y-%m-%d')
-            
             # Check cache first
-            cached_results = self.get_cached_qa(paper_id, date)
+            cached_results = self.get_cached_qa(paper_id)
             if cached_results:
                 print(f"Using cached Q&A for paper {paper_id}")
                 return cached_results
@@ -190,7 +186,7 @@ class QaProcessor:
                     qa_results[question] = f"Error getting answer: {str(e)}"
             
             # Save results to cache
-            self.save_qa_cache(paper_id, date, qa_results)
+            self.save_qa_cache(paper_id, qa_results)
             
             return qa_results
             

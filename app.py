@@ -179,8 +179,8 @@ def get_qa(arxiv_id):
         if not paper:
             return jsonify({'error': 'Paper not found'})
         
-        # Process Q&A with date for caching
-        qa_results = qa_processor.process_qa(paper, date=date_param)
+        # Process Q&A
+        qa_results = qa_processor.process_qa(paper)
         
         if 'error' in qa_results:
             return jsonify({'error': qa_results['error']})
