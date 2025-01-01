@@ -173,8 +173,8 @@
         <div class="navbar-content">
             <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
             <div class="nav-menu">
-                <a href="/" class="nav-date-link {% if not request.args.get('date') %}active{% endif %}">Today</a>
-                <a href="/history" class="nav-date-link active">History</a>
+                <a href="/" class="nav-link {% if not request.args.get('date') %}active{% endif %}">Today</a>
+                <a href="/history" class="nav-link active">History</a>
             </div>
         </div>
     </nav>
