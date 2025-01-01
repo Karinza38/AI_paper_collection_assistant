@@ -1,0 +1,17 @@
+# Ignore everything from .gitignore
+# dont commit the actual api keys or other personal info to the public github
+configs/keys.ini
+# dont commit venv and ide stuff
+venv
+.idea
+.aider*
+.env
+out/
+__pycache__/
+*.pyc
+
+# Additional Docker-specific ignores
+Dockerfile
+.dockerignore
+.git
+.gitignore
