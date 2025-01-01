@@ -33,33 +33,9 @@ class QaProcessor:
         # Progress tracking
         self.progress = {}
         
-        # Create cache directory
-        self.cache_dir = 'out/qa_cache'
-        os.makedirs(self.cache_dir, exist_ok=True)
-    
-    def get_cache_path(self, paper_id: str) -> str:
-        """Get the cache file path for a paper"""
-        return os.path.join(self.cache_dir, f"{paper_id}_qa.json")
-    
-    def get_cached_qa(self, paper_id: str) -> Optional[Dict]:
-        """Get cached Q&A results if they exist"""
-        cache_path = self.get_cache_path(paper_id)
-        if os.path.exists(cache_path):
-            try:
-                with open(cache_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Error reading cache for {paper_id}: {e}")
-        return None
-    
-    def save_qa_cache(self, paper_id: str, qa_results: Dict):
-        """Save Q&A results to cache"""
-        cache_path = self.get_cache_path(paper_id)
-        try:
-            with open(cache_path, 'w', encoding='utf-8') as f:
-                json.dump(qa_results, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"Error saving cache for {paper_id}: {e}")
+        # Initialize cache handler
+        from cache_handler import CacheHandler
+        self.cache_handler = CacheHandler('out/qa_cache')
     
     def get_paper_content(self, paper: Paper) -> str:
         """Get paper content using arxiv API and markitdown"""
@@ -86,7 +62,7 @@ class QaProcessor:
             paper_id = paper.arxiv_id
             
             # Check cache first
-            cached_results = self.get_cached_qa(paper_id)
+            cached_results = self.cache_handler.get_cached_data(paper_id)
             if cached_results:
                 print(f"Using cached Q&A for paper {paper_id}")
                 return cached_results
@@ -186,7 +162,7 @@ class QaProcessor:
                     qa_results[question] = f"Error getting answer: {str(e)}"
             
             # Save results to cache
-            self.save_qa_cache(paper_id, qa_results)
+            self.cache_handler.save_cache_data(paper_id, qa_results)
             
             return qa_results
             
