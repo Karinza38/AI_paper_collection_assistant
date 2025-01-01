@@ -14,7 +14,7 @@
     COPY . .                                                                                                     
                                                                                                                  
     # Set environment variables                                                                                  
-    ENV GEMINI_API_KEY="AIzaSyD4UfHmxR2aQH-YnuCi8ukZ7SGEW26Fjbw"                                                                                        
+    ENV GEMINI_API_KEY=""                                                                                        
     ENV SLACK_KEY=""                                                                                             
     ENV SLACK_CHANNEL_ID=""                                                                                      
                                                                                                                  
