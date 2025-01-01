@@ -410,6 +410,17 @@
     </style>
 </head>
 <body>
+    <!-- Main Progress Bar -->
+    <div id="main-progress" class="progress-container" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 1000; display: none;">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="progress-text">
+            <span id="main-progress-message">Starting...</span>
+            <span id="main-progress-count">0/0</span>
+        </div>
+    </div>
+
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-content">
@@ -603,6 +614,41 @@
                 }
             }
         }
+
+        // Main progress polling
+        function checkMainProgress() {
+            fetch('/main_progress')
+                .then(response => response.json())
+                .then(data => {
+                    const progressBar = document.getElementById('main-progress');
+                    const progressFill = progressBar.querySelector('.progress-fill');
+                    const progressMessage = document.getElementById('main-progress-message');
+                    const progressCount = document.getElementById('main-progress-count');
+                    
+                    if (data.running) {
+                        progressBar.style.display = 'block';
+                        const percentage = data.total > 0 ? (data.current / data.total) * 100 : 0;
+                        progressFill.style.width = `${percentage}%`;
+                        progressMessage.textContent = data.message;
+                        progressCount.textContent = `${data.current}/${data.total}`;
+                        
+                        // Check again in 1 second
+                        setTimeout(checkMainProgress, 1000);
+                    } else {
+                        progressBar.style.display = 'none';
+                        // Reload page when done to show new results
+                        if (data.current === data.total && data.total > 0) {
+                            window.location.reload();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking main progress:', error);
+                });
+        }
+
+        // Start checking progress when page loads
+        checkMainProgress();
 
         // Smooth scroll to sections
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {

@@ -58,7 +58,16 @@ def get_cached_dates():
 
 def cache_daily_output():
     """Cache current day's output"""
+    global main_progress
     today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Reset progress when starting
+    main_progress = {
+        'running': True,
+        'current': 0,
+        'total': 0,
+        'message': 'Starting paper collection...'
+    }
     
     # Cache JSON output
     if os.path.exists('out/output.json'):
@@ -201,6 +210,19 @@ def get_qa(arxiv_id):
         
     except Exception as e:
         return jsonify({'error': str(e)})
+
+# Global variable to track main.py status
+main_progress = {
+    'running': False,
+    'current': 0,
+    'total': 0,
+    'message': ''
+}
+
+@app.route('/main_progress')
+def get_main_progress():
+    """Get the current progress of main.py execution"""
+    return jsonify(main_progress)
 
 @app.route('/history')
 def history():
