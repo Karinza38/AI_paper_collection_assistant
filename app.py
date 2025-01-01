@@ -81,6 +81,11 @@ def index():
         # Get list of available dates
         available_dates = get_cached_dates()
         
+        # Check if output files exist
+        if not os.path.exists('out/output.json') and not available_dates:
+            return render_template('error.html', 
+                                 message="No paper data available yet. Please wait for the next scheduled update at 9:00 AM EST."), 503
+        
         # Determine which file to load
         if date_param and os.path.exists(f'out/cache/{date_param}_output.json'):
             json_file = f'out/cache/{date_param}_output.json'
@@ -130,7 +135,8 @@ def index():
                              current_date=date_param or datetime.now().strftime('%Y-%m-%d'))
     except Exception as e:
         print(f"Error in index route: {e}")
-        return f"Error loading papers: {str(e)}", 500
+        return render_template('error.html', 
+                             message=f"Error loading papers: {str(e)}"), 500
 
 @app.route('/qa_progress/<arxiv_id>')
 def get_qa_progress(arxiv_id):
@@ -207,11 +213,11 @@ def history():
             month_key = date_obj.strftime('%B %Y')
             
             # Load papers for this date
-            md_file = f'out/{date_info["date"]}_output.md'
+            json_file = f'out/cache/{date_info["date"]}_output.json'
             try:
-                with open(md_file, 'r') as f:
-                    md_content = f.read()
-                    paper_count = len(re.findall(r'## \d+\. \[', md_content))
+                with open(json_file, 'r') as f:
+                    papers_dict = json.load(f)
+                    paper_count = len(papers_dict)
             except:
                 paper_count = 0
             
@@ -225,12 +231,22 @@ def history():
                 'paper_count': paper_count
             })
         
+        # Sort months in reverse chronological order
+        papers_by_month = dict(sorted(papers_by_month.items(), 
+                                    key=lambda x: datetime.strptime(x[0], '%B %Y'), 
+                                    reverse=True))
+        
+        # Sort dates within each month
+        for month in papers_by_month:
+            papers_by_month[month].sort(key=lambda x: x['date'], reverse=True)
+        
         return render_template('history.html', 
                              papers_by_month=papers_by_month,
                              current_date=datetime.now().strftime('%Y-%m-%d'))
     except Exception as e:
         print(f"Error in history route: {e}")
-        return f"Error loading history: {str(e)}", 500
+        return render_template('error.html', 
+                             message=f"Error loading history: {str(e)}"), 500
 
 if __name__ == '__main__':
     # Load API keys from environment or config
