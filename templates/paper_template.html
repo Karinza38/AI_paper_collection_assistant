@@ -404,6 +404,9 @@
                 font-size: 1rem;
             }
         }
+
+        /* Add the markdown CSS */
+        {{ markdown_css|safe }}
     </style>
 </head>
 <body>
@@ -412,20 +415,8 @@
         <div class="navbar-content">
             <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
             <div class="nav-menu">
-                <button class="nav-date-button" onclick="toggleDateDropdown()">
-                    {{ date }}
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
-                <div class="nav-date-dropdown" id="dateDropdown">
-                    {% for date_info in available_dates %}
-                        <a href="/?date={{ date_info.date }}" 
-                           class="nav-date-link {% if date_info.date == current_date %}active{% endif %}">
-                            {{ date_info.display_date }}
-                        </a>
-                    {% endfor %}
-                </div>
+                <a href="/" class="nav-link {% if not request.args.get('date') %}active{% endif %}">Today</a>
+                <a href="/history" class="nav-link">History</a>
             </div>
         </div>
     </nav>

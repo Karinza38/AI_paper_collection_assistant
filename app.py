@@ -125,6 +125,9 @@ def index():
             }
             papers.append(Paper(**paper_data))
         
+        # Get the CSS for markdown styling
+        markdown_css = md_processor.get_css()
+        
         # Render template with all content
         return render_template('paper_template.html', 
                              papers=papers, 
@@ -132,7 +135,8 @@ def index():
                              header_content=header_html,
                              topics_content=topics_html,
                              available_dates=available_dates,
-                             current_date=date_param or datetime.now().strftime('%Y-%m-%d'))
+                             current_date=date_param or datetime.now().strftime('%Y-%m-%d'),
+                             markdown_css=markdown_css)
     except Exception as e:
         print(f"Error in index route: {e}")
         return render_template('error.html', 
