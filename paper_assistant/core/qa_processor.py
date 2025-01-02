@@ -1,7 +1,7 @@
 import configparser
 from typing import Dict
 import arxiv
-from arxiv_scraper import Paper
+from paper_assistant.core.arxiv_scraper import Paper
 from litellm import completion
 import instructor
 from pydantic import BaseModel
