@@ -1,9 +1,7 @@
 import os
 import configparser
 import io
-from typing import Set
 
-import litellm
 from litellm import completion
 import instructor
 

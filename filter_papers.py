@@ -17,19 +17,19 @@ import os
 from helpers import argsort
 
 
-
-
-
 class PaperScore(BaseModel):
     """Model for paper scoring response from LLM"""
+
     ARXIVID: str = Field(description="The arxiv ID of the paper")
     RELEVANCE: int = Field(description="Relevance score from 1-10")
     NOVELTY: int = Field(description="Novelty score from 1-10")
     COMMENT: str = Field(description="Brief comment about the paper")
+    CRITERION: str = Field(description="Which criterion this paper matches")
 
 
 class FilteredPapers(BaseModel):
     """Model for filtered paper IDs"""
+
     filtered_ids: List[str] = Field(description="List of arxiv IDs to filter out")
 
 
@@ -79,9 +79,8 @@ def calc_price(model, usage):
         return (0.03 * usage.prompt_tokens + 0.06 * usage.completion_tokens) / 1000.0
     if (model == "gpt-3.5-turbo") or (model == "gpt-3.5-turbo-1106"):
         return (0.0015 * usage.prompt_tokens + 0.002 * usage.completion_tokens) / 1000.0
-    if 'gemini' in model:
+    if "gemini" in model:
         return 0
-
 
 
 def run_and_parse_chatgpt(full_prompt, client, config):
@@ -95,15 +94,19 @@ def run_and_parse_chatgpt(full_prompt, client, config):
             max_retries=3,
             timeout=10,
         )
-        return [score.model_dump() for score in response], 0.0  # Cost calculation not implemented for litellm
+        return [
+            score.model_dump() for score in response
+        ], 0.0  # Cost calculation not implemented for litellm
     except Exception as ex:
         if config["OUTPUT"].getboolean("debug_messages"):
             print("Exception happened " + str(ex))
-            #check if the api key is valid 
+            # check if the api key is valid
             if os.environ.get("GEMINI_API_KEY") is None:
                 print("GEMINI_API_KEY is not set in the environment variables")
             else:
-                print(f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}")
+                print(
+                    f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}"
+                )
         return [], 0.0
 
 
@@ -133,7 +136,7 @@ def batched(items, batch_size):
 def filter_papers_by_abstract(
     papers, config, client, base_prompt, criterion
 ) -> List[Paper]:
-    filter_postfix = 'Identify any papers that are absolutely and completely irrelavent to the criteria, and you are absolutely sure your friend will not enjoy. Return a list of arxiv IDs to filter out. Be extremely cautious, and if you are unsure at all, do not add a paper in this list. You will check it in detail later.'
+    filter_postfix = "Identify any papers that are absolutely and completely irrelavent to the criteria, and you are absolutely sure your friend will not enjoy. Return a list of arxiv IDs to filter out. Be extremely cautious, and if you are unsure at all, do not add a paper in this list. You will check it in detail later."
     batches_of_papers = batched(papers, 10)
     final_list = []
     cost = 0
@@ -142,13 +145,13 @@ def filter_papers_by_abstract(
         full_prompt = (
             base_prompt + "\n " + criterion + "\n" + papers_string + filter_postfix
         )
-        
+
         try:
             response = client.chat.completions.create(
                 model=config["SELECTION"]["model"],
                 messages=[{"role": "user", "content": full_prompt}],
                 max_tokens=1024,
-                response_model=FilteredPapers
+                response_model=FilteredPapers,
             )
             filtered_set = set(response.filtered_ids)
             for paper in batch:
@@ -161,19 +164,27 @@ def filter_papers_by_abstract(
             if os.environ.get("GEMINI_API_KEY") is None:
                 print("GEMINI_API_KEY is not set in the environment variables")
             else:
-                print(f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}")
+                print(
+                    f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}"
+                )
             continue
-            
+
     return final_list, cost
 
 
 def paper_to_abstract(paper_entry: Paper) -> str:
-    return "ArXiv ID: " + paper_entry.arxiv_id + " Title: " + paper_entry.title + "Abstract: " + paper_entry.abstract + "\n"
+    return (
+        "ArXiv ID: "
+        + paper_entry.arxiv_id
+        + " Title: "
+        + paper_entry.title
+        + "Abstract: "
+        + paper_entry.abstract
+        + "\n"
+    )
 
 
-def run_on_batch(
-    paper_batch, base_prompt, criterion, postfix_prompt, client, config
-):
+def run_on_batch(paper_batch, base_prompt, criterion, postfix_prompt, client, config):
     batch_str = [paper_to_string(paper) for paper in paper_batch]
     full_prompt = "\n".join(
         [
@@ -254,6 +265,7 @@ def filter_by_gpt(
 
 if __name__ == "__main__":
     from litellm import validate_environment
+
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
     # Initialize the LiteLLM client with Instructor

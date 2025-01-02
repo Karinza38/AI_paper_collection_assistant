@@ -404,7 +404,53 @@
                 font-size: 1rem;
             }
         }
+/* Enhanced sorting controls */
+.sort-controls {
+    margin: 1.5rem 0;
+    padding: 1.2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+}
 
+.sort-controls label {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+}
+
+.sort-controls select {
+    padding: 0.6rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1rem;
+    padding-right: 2rem;
+}
+
+.sort-controls select:hover {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.sort-controls select:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Add the markdown CSS */
         /* Add the markdown CSS */
         {{ markdown_css|safe }}
     </style>
@@ -434,6 +480,14 @@
 
     <h1>Personalized Daily Arxiv Papers {{ date }}</h1>
     <p>Total relevant papers: {{ papers|length }}</p>
+    
+    <div class="sort-controls">
+        <label for="sort-select">Sort by:</label>
+        <select id="sort-select" onchange="sortPapers()">
+            <option value="default">Default</option>
+            <option value="criterion" {% if request.args.get('sort') == 'criterion' %}selected{% endif %}>Selection Criterion</option>
+        </select>
+    </div>
     <!-- Add header card -->
     <div class="header-card paper">
         <div class="markdown-content">
@@ -468,6 +522,10 @@
         
         {% if paper.novelty %}
         <p><strong>Novelty:</strong> {{ paper.novelty }}</p>
+        {% endif %}
+        
+        {% if paper.criterion %}
+        <p><strong>Selection Criterion:</strong> {{ paper.criterion }}</p>
         {% endif %}
 
         <div class="qa-section">

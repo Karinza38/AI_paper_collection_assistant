@@ -159,9 +159,26 @@ def index():
                 'url': f"https://arxiv.org/abs/{p.get('ARXIVID') or p.get('arxiv_id')}",
                 'comment': p.get('COMMENT') or p.get('comment'),
                 'relevance': p.get('RELEVANCE') or p.get('relevance'),
-                'novelty': p.get('NOVELTY') or p.get('novelty')
+                'novelty': p.get('NOVELTY') or p.get('novelty'),
+                'criterion': p.get('CRITERION') or p.get('criterion')
             }
             papers.append(Paper(**paper_data))
+        
+        # Sort papers by criterion priority if sort parameter is present
+        if request.args.get('sort') == 'criterion':
+            # Get unique criteria in priority order
+            criteria_order = []
+            with open('configs/paper_topics.txt', 'r') as f:
+                for line in f:
+                    if line.strip() and not line.startswith('#'):
+                        criteria_order.append(line.strip())
+            
+            # Sort papers by criterion priority
+            papers.sort(key=lambda x: (
+                criteria_order.index(x.criterion) if x.criterion in criteria_order else len(criteria_order),
+                -(x.relevance or 0),
+                -(x.novelty or 0)
+            ))
         
         # Get the CSS for markdown styling
         markdown_css = md_processor.get_css()
