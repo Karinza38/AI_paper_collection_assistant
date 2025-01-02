@@ -1,0 +1,100 @@
+
+### **Rule for Filtering Papers Based on Title and Abstract**
+
+1. **Efficient Training of Small LLMs and VLMs**  
+   Explore methods to efficiently train small-scale Language Models (LLMs) or Vision-Language Models (VLMs).  
+   - **Relevant**:  
+     - Strategies for efficient data utilization under resource constraints.  
+     - Novel training techniques to optimize model performance for small-scale models.  
+     - Design principles for small LLMs and VLMs, including structural designs and methodological innovations.  
+     - Practical methods that enhance efficiency, scalability, or adaptability in resource-constrained settings.  
+   - **Not Relevant**:  
+     - Training techniques that are neither efficient nor specifically applicable to small-scale models.  
+     - A Method for fine-tuning of models  
+     - Applications of small-scale LLMs or VLMs in specific fields without discussing broader implications or methods.  
+
+---
+
+2. **World Models in Robotics whitin Generative AI**  
+   Investigate the role of world models in robotics, including their intersection with generative artificial intelligence.  
+   - **Relevant**:  
+     - Applications of generative AI to robotic operations (e.g., perception, planning, control).  
+     - Integration of world models with visual-language models for robotics.  
+     - Advancements in the use of world models to enhance robotic perception, reasoning, and adaptability.  
+     - Theoretical or applied methods that demonstrate clear improvement in robotic systems through world models.  
+   - **Not Relevant**:  
+     - Generic generative AI techniques without direct relevance to robotics or world models.  
+     - Studies that focus solely on unrelated applications of world models outside the robotics domain.  
+
+---
+
+3. **Large Models in Robotics**  
+   Investigate the use of large-scale models in robotics, including their intersection with generative artificial intelligence.  
+   - **Relevant**:  
+     - Design principles and methodologies for large-scale models in robotics.  
+     - Strategies for integrating large models with robotic systems to improve manipulation, planning, or control tasks.  
+     - Methods to enhance the efficiency, scalability, or adaptability of large-scale models in robotics.  
+     - Application of pre-trained models (e.g., foundation models) for robotic manipulation tasks and related challenges.  
+   - **Not Relevant**:  
+     - Use of large models in domains other than robotics, even if they overlap with generative AI.  
+     - Simple applications of existing large models without novel contributions to robotics.  
+
+---
+
+4. **Advancements in Regularization to Address Neural Collapse**  
+   Develop and analyze improved regularization methods to mitigate the phenomenon of neural collapse.  
+   - **Relevant**:  
+     - Representation learning in feature spaces for image classification tasks.  
+     - Innovations in label semantics or supervised learning frameworks to address neural collapse.  
+     - Novel techniques to achieve robust feature representations and mitigate collapse in deep learning models.  
+     - Practical methods that demonstrate clear improvements in model generalization and robustness.  
+   - **Not Relevant**:  
+     - General regularization methods not directly addressing neural collapse or its effects.  
+     - Studies lacking innovation or practical relevance in mitigating neural collapse.  
+
+---
+
+5. **Enhancing Reasoning and Decision-Making in Language Models**  
+   Investigate methods to improve the reasoning and decision-making capabilities of language models.  
+   - **Relevant**:  
+     - Scalable approaches to reasoning tasks leveraging post-training skills.  
+     - Advancements in reasoning frameworks, such as Chain of Thought (CoT) or structured reasoning methods.  
+     - Integration of structured reasoning processes into the architecture or training methodology of language models.  
+     - Techniques that significantly improve practical reasoning and decision-making capabilities of LLMs.  
+   - **Not Relevant**:  
+     - Applications with simple reasoning tasks that lack significant methodological contributions.  
+     - Interdisciplinary studies focused on social implications rather than technical advancements in reasoning or decision-making.  
+
+---
+
+6. **Mechanical Interpretability of LLMs and VLMs**  
+   Explore approaches to improve the mechanical interpretability of large-scale models, with a focus on both LLMs and VLMs.  
+   - **Relevant**:  
+     - Explore the Physics of language models which is universal laws of all LLMs.
+     - Techniques like sparse autoencoders for improving interpretability and representation learning.  
+     - Novel methodologies to analyze and visualize the internal workings of LLMs and VLMs.  
+     - Mechanisms that enhance the balance between interpretability and performance in complex models.  
+     - Studies that bridge the gap between interpretability research and practical model development.  
+   - **Not Relevant**:  
+     - Generic interpretability techniques without application to LLMs or VLMs.  
+     - Studies focused only on external validation of interpretability without proposing new techniques or frameworks.  
+
+---
+
+7. **Revealing Long-Standing Errors and Misunderstandings in Deep Learning Research**  
+   Articles that critically analyze and expose long-existing errors, misconceptions, or flawed assumptions in the deep learning research community.  
+   - **Relevant**:  
+     - Articles that present well-supported evidence debunking common misconceptions in deep learning.  
+     - Studies that address fundamental misunderstandings, especially those impacting model design, training, or evaluation.  
+     - Critiques that lead to actionable insights or improvements in the field.  
+   - **Not Relevant**:  
+     - Opinion pieces or critiques without strong evidence or novel contributions.  
+     - Articles focused on niche or domain-specific errors without broader implications for deep learning research.  
+
+---
+
+### **General Filtering Guidelines**  
+- Favor articles that demonstrate **novelty**, **practical relevance**, or **broad applicability** to the field.  
+- Avoid papers that focus on simple applications, interdisciplinary topics with limited technical contributions, or generalizations that lack innovation.  
+- Prioritize works that contribute to solving key challenges or advancing state-of-the-art methods in the respective areas.  
+
