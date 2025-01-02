@@ -21,6 +21,16 @@ A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/g
 
 ## Features
 
+- **Multi-Source Support**: Currently supports arXiv with plans to integrate HuggingFace Daily Papers
+- **Advanced Filtering**: Uses abstract-based filtering for more accurate paper selection
+- **Custom LLM Connections**: Leverages LiteLLM for seamless integration with hundreds of different LLMs
+- **Fast AI QA**: Implements caching using Google Gemini for efficient question-answering
+- **Topic Classification**: Organizes papers by topics with web-based sorting capabilities
+- **Enhanced UI**: Features a more aesthetically pleasing and user-friendly web interface
+- **Modular Codebase**: Refactored for easy customization and extension
+- **History Tracking**: Convenient page for saving and retrieving paper history
+- **Docker Support**: Easy deployment using Docker containers
+
 -   **Daily ArXiv Scanning**: Automatically fetches new papers from ArXiv based on specified categories.
 -   **Intelligent Filtering**: Uses a combination of author matching and LLM-based relevance scoring to filter papers.
 -   **Customizable Prompts**: Allows users to define specific criteria for paper selection using a prompt.
@@ -81,6 +91,44 @@ A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/g
 ### Running Locally
 
 ### Docker Usage
+
+#### Build the Docker Image
+```bash
+docker build -t arxiv-paper-summarizer .
+```
+
+#### Run the Docker Container
+```bash
+docker run -d -p 8000:8000 \
+  -v /path/to/your/configs:/app/configs \
+  -e GEMINI_API_KEY=your_api_key \
+  arxiv-paper-summarizer
+```
+
+#### Environment Variables
+- `GEMINI_API_KEY`: Your Google Gemini API key (required)
+- `SLACK_KEY`: Slack API key (optional)
+- `SLACK_CHANNEL_ID`: Slack channel ID (optional)
+
+#### Persistent Storage
+- Mount your config directory to `/app/configs` to persist configuration files
+- Mount a data directory to `/app/data` to persist paper history and cache
+
+#### Docker Compose Example
+```yaml
+version: '3'
+services:
+  arxiv-summarizer:
+    image: arxiv-paper-summarizer
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./configs:/app/configs
+      - ./data:/app/data
+    environment:
+      - GEMINI_API_KEY=your_api_key
+    restart: unless-stopped
+```
 
 1.  Build the Docker image:
 
