@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ArXiv Papers</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Add MathJax for math rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Add Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --box-shadow-color: rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: var(--background-color);
+        }
+        
+        h1, h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.3rem;
+        }
+        
+        h1 { font-size: 2.2rem; margin-bottom: 1.8rem; }
+        h2 { font-size: 1.6rem; margin-top: 1.8rem; }
+        
+        a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover { color: #2980b9; }
+        
+        .paper {
+            background: white;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 10px;
+            box-shadow: 0 3px 5px var(--box-shadow-color);
+        }
+        
+        .qa-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.3rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+        
+        .qa-button:hover {
+            background-color: #2980b9;
+        }
+        
+        .qa-content {
+            background: white;
+            padding: 1.5rem;
+            margin: 0.8rem 0;
+            border-radius: 6px;
+            box-shadow: 0 2px 3px var(--box-shadow-color);
+        }
+        
+        .qa-pair {
+            margin-bottom: 1.5rem;
+            padding: 0.8rem;
+            border-left: 4px solid var(--secondary-color);
+            background-color: #f8f9fa;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .question {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        
+        .answer {
+            color: var(--text-color);
+            margin-left: 0.8rem;
+        }
+        
+        /* Math formula styling */
+        .math {
+            overflow-x: auto;
+            padding: 0.8rem 0;
+        }
+        
+        /* Code block styling */
+        pre {
+            background: #282c34;
+            padding: 0.8rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 0.8rem 0;
+        }
+        
+        code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8em;
+        }
+        
+        /* Progress bar styling */
+        .progress-container {
+            margin: 0.8rem 0;
+            background: white;
+            padding: 1.2rem;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px var(--box-shadow-color);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 0.6rem;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        /* Markdown content styling */
+        .markdown-content {
+            width: 100%;
+            max-width: none;
+        }
+
+        /* Headers */
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Lists */
+        .markdown-content ul,
+        .markdown-content ol {
+            list-style-type: disc;
+            margin-left: 1rem;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+
+        /* Nested lists */
+        .markdown-content ul ul,
+        .markdown-content ol ol,
+        .markdown-content ul ol,
+        .markdown-content ol ul {
+            margin-top: 0.5rem;
+            margin-left: 1.5rem;
+        }
+
+        /* Code blocks */
+        .markdown-content pre {
+            background-color: #282c34;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+
+        .markdown-content code {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Tables */
+        .markdown-content table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+        }
+
+        /* Blockquotes */
+        .markdown-content blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Paragraphs */
+        .markdown-content p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Links */
+        .markdown-content a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .markdown-content a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        /* Emphasis */
+        .markdown-content strong {
+            font-weight: bold;
+        }
+
+        .markdown-content em {
+            font-style: italic;
+        }
+
+        /* Horizontal rule */
+        .markdown-content hr {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        /* Add these to your existing styles */
+        .criteria-section {
+            margin-top: 4rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-top: 5px solid var(--secondary-color);
+        }
+
+        .criteria-section h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .criteria-section .markdown-content {
+            padding: 1rem 0;
+        }
+
+        .criteria-section ol {
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .criteria-section li {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .criteria-section li > ul {
+            margin-top: 0.5rem;
+            color: var(--text-color);
+            font-weight: normal;
+        }
+
+        .criteria-section strong {
+            color: var(--primary-color);
+        }
+
+        .criteria-section p {
+            margin: 0.5rem 0;
+            color: var(--text-color);
+        }
+
+        /* Navigation bar styling */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 0.5rem 2rem;
+        }
+
+        .navbar-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .nav-date-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-date-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            width: 200px;
+            z-index: 1001;
+        }
+
+        .nav-date-dropdown.show {
+            display: block;
+        }
+
+        .nav-date-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .nav-date-link:hover {
+            background-color: #f5f5f5;
+        }
+
+        .nav-date-link.active {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* Adjust body padding to account for fixed navbar */
+        body {
+            padding-top: 4rem;
+        }
+
+        /* Responsive design for navbar */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .nav-brand {
+                font-size: 1rem;
+            }
+        }
+/* Enhanced sorting controls */
+.sort-controls {
+    margin: 1.5rem 0;
+    padding: 1.2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-controls label {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+}
+
+.sort-controls select {
+    padding: 0.6rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1rem;
+    padding-right: 2rem;
+}
+
+.sort-controls select:hover {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.sort-controls select:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Add the markdown CSS */
+        /* Add the markdown CSS */
+        {{ markdown_css|safe }}
+    </style>
+</head>
+<body>
+    <!-- Main Progress Bar -->
+    <div id="main-progress" class="progress-container" style="position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 1000; display: none;">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="progress-text">
+            <span id="main-progress-message">Starting...</span>
+            <span id="main-progress-count">0/0</span>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="nav-brand">ArXiv Paper Assistant</a>
+            <div class="nav-menu">
+                <a href="/" class="nav-link {% if not request.args.get('date') %}active{% endif %}">Today</a>
+                <a href="/history" class="nav-link">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <h1>Personalized Daily Arxiv Papers {{ date }}</h1>
+    <p>Total relevant papers: {{ papers|length }}</p>
+    
+    <div class="sort-controls">
+        <label for="sort-select">Sort by:</label>
+        <select id="sort-select" onchange="sortPapers()">
+            <option value="default">Default</option>
+            <option value="criterion" {% if request.args.get('sort') == 'criterion' %}selected{% endif %}>Selection Criterion</option>
+        </select>
+    </div>
+    <!-- Add header card -->
+    <div class="header-card paper">
+        <div class="markdown-content">
+            {{ header_content|safe }}
+        </div>
+    </div>
+
+    <div class="paper">
+        <h2>Table of Contents</h2>
+        {% for paper in papers %}
+        <div class="toc-item">
+            <a href="#paper{{ loop.index0 }}">{{ paper.title }}</a><br>
+            <small><strong>Authors:</strong> {{ paper.authors|join(', ') }}</small>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% for paper in papers %}
+    <div id="paper{{ loop.index0 }}" class="paper">
+        <h2>{{ loop.index0 }}. <a href="{{ paper.url }}" target="_blank">{{ paper.title }}</a></h2>
+        <p><strong>ArXiv ID:</strong> {{ paper.arxiv_id }}</p>
+        <p><strong>Authors:</strong> {{ paper.authors|join(', ') }}</p>
+        <p><strong>Abstract:</strong> {{ paper.abstract }}</p>
+        
+        {% if paper.comment %}
+        <p><strong>Comment:</strong> {{ paper.comment }}</p>
+        {% endif %}
+        
+        {% if paper.relevance %}
+        <p><strong>Relevance:</strong> {{ paper.relevance }}</p>
+        {% endif %}
+        
+        {% if paper.novelty %}
+        <p><strong>Novelty:</strong> {{ paper.novelty }}</p>
+        {% endif %}
+        
+        {% if paper.criterion %}
+        <p><strong>Selection Criterion:</strong> {{ paper.criterion }}</p>
+        {% endif %}
+
+        <div class="qa-section">
+            <button class="qa-button" data-arxiv-id="{{ paper.arxiv_id or paper.get('ARXIVID', '') }}">Show Q&A</button>
+            <div class="progress-container" id="progress-{{ paper.arxiv_id }}" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">
+                    Processing question <span class="current-question">0</span> of <span class="total-questions">7</span>
+                </div>
+            </div>
+            <div id="qa-{{ paper.arxiv_id }}" class="qa-content markdown-content" style="display: none;"></div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="paper criteria-section">
+        <h2>Paper Selection Criteria</h2>
+        <div class="markdown-content">
+            {{ topics_content|safe }}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    
+    <script>
+        // Configure marked.js to use Prism.js for code highlighting
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                }
+                return code;
+            },
+            breaks: true,  // Enable line breaks
+            gfm: true     // Enable GitHub Flavored Markdown
+        });
+
+        // Function to preprocess the content
+        function preprocessContent(content) {
+            // Handle line breaks
+            content = content.replace(/\\n/g, '\n');  // Replace \n with actual line breaks
+            
+            // Handle bullet points
+            content = content.replace(/\n\*/g, '\n• ');  // Replace * at start of lines with bullet points
+            content = content.replace(/^\*/g, '• ');     // Replace * at start of content with bullet point
+            
+            // Ensure proper spacing for lists
+            content = content.replace(/\n•/g, '\n\n•');  // Add extra line break before bullet points
+            
+            // Clean up multiple consecutive line breaks
+            content = content.replace(/\n{3,}/g, '\n\n');
+            
+            return content;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.qa-button').forEach(button => {
+                button.addEventListener('click', async function() {
+                    const arxivId = this.dataset.arxivId;
+                    const qaContent = document.getElementById(`qa-${arxivId}`);
+                    const progressContainer = document.getElementById(`progress-${arxivId}`);
+                    const progressFill = progressContainer.querySelector('.progress-fill');
+                    const currentQuestion = progressContainer.querySelector('.current-question');
+                    const totalQuestions = progressContainer.querySelector('.total-questions');
+                    
+                    if (qaContent.style.display === 'none') {
+                        this.disabled = true;
+                        progressContainer.style.display = 'block';
+                        qaContent.style.display = 'none';
+                        
+                        try {
+                            const pollProgress = setInterval(async () => {
+                                const progressResponse = await fetch(`/qa_progress/${arxivId}`);
+                                const progressData = await progressResponse.json();
+                                
+                                if (progressData.total > 0) {
+                                    const percentage = (progressData.current / progressData.total) * 100;
+                                    progressFill.style.width = `${percentage}%`;
+                                    currentQuestion.textContent = progressData.current;
+                                    totalQuestions.textContent = progressData.total;
+                                }
+                            }, 1000);
+                            
+                            const response = await fetch(`/get_qa/${arxivId}`);
+                            const data = await response.json();
+                            
+                            clearInterval(pollProgress);
+                            
+                            if (data.error) {
+                                qaContent.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                            } else {
+                                // Preprocess the content
+                                const processedContent = preprocessContent(data.content);
+                                
+                                // Convert markdown to HTML
+                                qaContent.innerHTML = marked.parse(processedContent);
+                                
+                                // Trigger MathJax to process new content
+                                MathJax.typesetPromise([qaContent]);
+                                
+                                // Trigger Prism.js to highlight code
+                                Prism.highlightAllUnder(qaContent);
+                            }
+                            
+                            progressContainer.style.display = 'none';
+                            qaContent.style.display = 'block';
+                            this.textContent = 'Hide Q&A';
+                            
+                        } catch (error) {
+                            console.error('Error:', error);
+                            qaContent.innerHTML = '<p class="error">Error loading Q&A content</p>';
+                            progressContainer.style.display = 'none';
+                        }
+                        
+                    } else {
+                        qaContent.style.display = 'none';
+                        this.textContent = 'Show Q&A';
+                    }
+                    
+                    this.disabled = false;
+                });
+            });
+        });
+
+        // Date dropdown functionality
+        function toggleDateDropdown() {
+            const dropdown = document.getElementById('dateDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.nav-date-button') && 
+                !event.target.matches('.nav-date-button *')) {
+                const dropdowns = document.getElementsByClassName('nav-date-dropdown');
+                for (let dropdown of dropdowns) {
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Main progress polling
+        function checkMainProgress() {
+            fetch('/main_progress')
+                .then(response => response.json())
+                .then(data => {
+                    const progressBar = document.getElementById('main-progress');
+                    const progressFill = progressBar.querySelector('.progress-fill');
+                    const progressMessage = document.getElementById('main-progress-message');
+                    const progressCount = document.getElementById('main-progress-count');
+                    
+                    if (data.running) {
+                        progressBar.style.display = 'block';
+                        const percentage = data.total > 0 ? (data.current / data.total) * 100 : 0;
+                        progressFill.style.width = `${percentage}%`;
+                        progressMessage.textContent = data.message;
+                        progressCount.textContent = `${data.current}/${data.total}`;
+                        
+                        // Check again in 1 second
+                        setTimeout(checkMainProgress, 1000);
+                    } else {
+                        progressBar.style.display = 'none';
+                        // Reload page when done to show new results
+                        if (data.current === data.total && data.total > 0) {
+                            window.location.reload();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking main progress:', error);
+                });
+        }
+
+        // Start checking progress when page loads
+        checkMainProgress();
+
+        // Smooth scroll to sections
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const navbarHeight = document.querySelector('.navbar').offsetHeight;
+                    const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+                    window.scrollTo({
+                        top: targetPosition - navbarHeight - 20,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

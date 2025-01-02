@@ -1,6 +1,7 @@
 """
 Code to render the output.json into a format suitable for a slackbot, and to push it to slack using webhooks
 """
+
 import json
 import os
 from datetime import datetime
@@ -9,7 +10,7 @@ from typing import List, TypeVar
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from arxiv_scraper import Paper
+from paper_assistant.core.arxiv_scraper import Paper
 
 T = TypeVar("T")
 

@@ -1,0 +1,14 @@
+version: '3'
+services:
+  arxiv-summarizer:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./paper_assistant/config:/app/paper_assistant/config
+      - ./out:/app/out
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SLACK_KEY=${SLACK_KEY}
+      - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID}
+    restart: unless-stopped

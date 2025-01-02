@@ -8,11 +8,11 @@ import instructor
 from litellm import completion
 from pydantic import BaseModel, Field
 
-from arxiv_scraper import Paper
-from arxiv_scraper import EnhancedJSONEncoder
+from paper_assistant.core.arxiv_scraper import Paper
+from paper_assistant.core.arxiv_scraper import EnhancedJSONEncoder
 import os
 
-from helpers import argsort
+from paper_assistant.utils.helpers import argsort
 
 
 class PaperScore(BaseModel):
@@ -200,11 +200,11 @@ def filter_by_gpt(
     all_authors, papers, config, client, all_papers, selected_papers, sort_dict
 ):
     # deal with config parsing
-    with open("configs/base_prompt.txt", "r") as f:
+    with open("paper_assistant/config/base_prompt.txt", "r") as f:
         base_prompt = f.read()
-    with open("configs/paper_topics.txt", "r") as f:
+    with open("paper_assistant/config/paper_topics.txt", "r") as f:
         criterion = f.read()
-    with open("configs/postfix_prompt.txt", "r") as f:
+    with open("paper_assistant/config/postfix_prompt.txt", "r") as f:
         postfix_prompt = f.read()
     all_cost = 0
     if config["SELECTION"].getboolean("run_litellm"):
@@ -262,18 +262,17 @@ def filter_by_gpt(
 
 
 if __name__ == "__main__":
-
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
     # Initialize the LiteLLM client with Instructor
     client = instructor.from_litellm(completion)
 
     # deal with config parsing
-    with open("configs/base_prompt.txt", "r") as f:
+    with open("paper_assistant/config/base_prompt.txt", "r") as f:
         base_prompt = f.read()
-    with open("configs/paper_topics.txt", "r") as f:
+    with open("paper_assistant/config/paper_topics.txt", "r") as f:
         criterion = f.read()
-    with open("configs/postfix_prompt.txt", "r") as f:
+    with open("paper_assistant/config/postfix_prompt.txt", "r") as f:
         postfix_prompt = f.read()
     # loads papers from 'in/debug_papers.json' and filters them
     with open("in/debug_papers.json", "r") as f:
