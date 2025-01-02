@@ -7,3 +7,4 @@ venv
 out/
 __pycache__/
 *.pyc
+.ruff_cache/
