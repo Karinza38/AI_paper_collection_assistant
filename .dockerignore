@@ -16,3 +16,4 @@ Dockerfile
 .dockerignore
 .git
 .gitignore
+.egg-info/
