@@ -8,9 +8,10 @@ from paper_assistant.utils.markdown_processor import MarkdownProcessor
 import glob
 from paper_assistant.utils.helpers import get_api_key
 
+
 def create_app():
     app = Flask(__name__, static_folder="static")
-    
+
     # Get API key and initialize processors
     try:
         # Get and validate API key
@@ -221,7 +222,9 @@ def create_app():
                 print(f"Comparing with paper ID: {paper_arxiv_id}")
 
                 # Strip version numbers from arxiv IDs for comparison
-                clean_paper_id = paper_arxiv_id.split("v")[0] if paper_arxiv_id else None
+                clean_paper_id = (
+                    paper_arxiv_id.split("v")[0] if paper_arxiv_id else None
+                )
                 clean_input_id = arxiv_id.split("v")[0] if arxiv_id else None
 
                 if clean_paper_id == clean_input_id:
