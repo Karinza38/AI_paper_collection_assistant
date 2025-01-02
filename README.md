@@ -126,7 +126,8 @@ services:
       - ./configs:/app/configs
       - ./data:/app/data
     environment:
-      - GEMINI_API_KEY=your_api_key
+      environment:
+        - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
 ```
 
