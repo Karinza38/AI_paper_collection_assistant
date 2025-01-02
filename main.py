@@ -1,298 +1,71 @@
-import json
-import configparser
 import os
-import time
-from datetime import datetime
+import configparser
+import io
+from typing import Set
 
 import litellm
-from openai import OpenAI
-from requests import Session
-from typing import TypeVar, Generator
-import io
-
-from retry import retry
-from tqdm import tqdm
 from litellm import completion
 import instructor
 
-from arxiv_scraper import get_papers_from_arxiv_rss_api, Paper, EnhancedJSONEncoder
-from filter_papers import filter_by_author, filter_by_gpt
-from parse_json_to_md import render_md_string
-from push_to_slack import push_to_slack
-
-import arxiv  # Import the arxiv library
-
 from helpers import get_api_key
-
-T = TypeVar("T")
-
-def batched(items: list[T], batch_size: int) -> list[T]:
-    # takes a list and returns a list of list with batch_size
-    return [items[i : i + batch_size] for i in range(0, len(items), batch_size)]
-
-def argsort(seq):
-    # native python version of an 'argsort'
-    # http://stackoverflow.com/questions/3071415/efficient-method-to-calculate-the-rank-vector-of-a-list-in-python
-    return sorted(range(len(seq)), key=seq.__getitem__)
-
-def get_paper_batch(
-    session: Session,
-    ids: list[str],
-    S2_API_KEY: str,
-    fields: str = "paperId,title",
-    **kwargs,
-) -> list[dict]:
-    # gets a batch of papers. taken from the sem scholar example.
-    params = {
-        "fields": fields,
-        **kwargs,
-    }
-    if S2_API_KEY is None:
-        headers = {}
-    else:
-        headers = {
-            "X-API-KEY": S2_API_KEY,
-        }
-    body = {
-        "ids": ids,
-    }
-
-    # https://api.semanticscholar.org/api-docs/graph#tag/Paper-Data/operation/post_graph_get_papers
-    with session.post(
-        "https://api.semanticscholar.org/graph/v1/paper/batch",
-        params=params,
-        headers=headers,
-        json=body,
-    ) as response:
-        response.raise_for_status()
-        return response.json()
-
-def get_author_batch(
-    session: Session,
-    ids: list[str],
-    S2_API_KEY: str,
-    fields: str = "name,hIndex,citationCount",
-    **kwargs,
-) -> list[dict]:
-    # gets a batch of authors. analogous to author batch
-    params = {
-        "fields": fields,
-        **kwargs,
-    }
-    if S2_API_KEY is None:
-        headers = {}
-    else:
-        headers = {
-            "X-API-KEY": S2_API_KEY,
-        }
-    body = {
-        "ids": ids,
-    }
-
-    with session.post(
-        "https://api.semanticscholar.org/graph/v1/author/batch",
-        params=params,
-        headers=headers,
-        json=body,
-    ) as response:
-        response.raise_for_status()
-        return response.json()
-
-@retry(tries=3, delay=2.0)
-def get_one_author(session, author: str, S2_API_KEY: str) -> str:
-    # query the right endpoint https://api.semanticscholar.org/graph/v1/author/search?query=adam+smith
-    params = {"query": author, "fields": "authorId,name,hIndex", "limit": "10"}
-    if S2_API_KEY is None:
-        headers = {}
-    else:
-        headers = {
-            "X-API-KEY": S2_API_KEY,
-        }
-    with session.get(
-        "https://api.semanticscholar.org/graph/v1/author/search",
-        params=params,
-        headers=headers,
-    ) as response:
-        # try catch for errors
-        try:
-            response.raise_for_status()
-            response_json = response.json()
-            if len(response_json["data"]) >= 1:
-                return response_json["data"]
-            else:
-                return None
-        except Exception as ex:
-            print("exception happened: " + str(ex))
-            return None
-
-def get_papers(
-    ids: list[str], S2_API_KEY: str, batch_size: int = 100, **kwargs
-) -> Generator[dict, None, None]:
-    # gets all papers, doing batching to avoid hitting the max paper limit.
-    # use a session to reuse the same TCP connection
-    with Session() as session:
-        # take advantage of S2 batch paper endpoint
-        for ids_batch in batched(ids, batch_size=batch_size):
-            yield from get_paper_batch(session, ids_batch, S2_API_KEY, **kwargs)
-
-def get_authors(
-    all_authors: list[str], S2_API_KEY: str, batch_size: int = 100, **kwargs
-):
-    # In debug mode, load from cached file instead of querying API
-    # for debug 
-    debug_file = "/Users/dylanli/repos/gpt_paper_assistant/out/all_authors.debug.json"
-    if os.path.exists(debug_file):
-        with open(debug_file, 'r') as f:
-            debug_authors = json.load(f)
-            return debug_authors
-            
-    # If debug file doesn't exist, fall back to API queries
-    author_metadata_dict = {}
-    with Session() as session:
-        for author in tqdm(all_authors):
-            auth_map = get_one_author(session, author, S2_API_KEY)
-            if auth_map is not None:
-                author_metadata_dict[author] = auth_map
-            # add a 20ms wait time to avoid rate limiting
-            # otherwise, semantic scholar aggressively rate limits, so do 1s
-            if S2_API_KEY is not None:
-                time.sleep(0.02)
-            else:
-                time.sleep(1.0)
-    return author_metadata_dict
-
-def get_papers_from_arxiv(config):
-    area_list = config["FILTERING"]["arxiv_category"].split(",")
-    paper_set = set()
-    for area in area_list:
-        papers = get_papers_from_arxiv_rss_api(area.strip(), config)
-        paper_set.update(set(papers))
-    if config["OUTPUT"].getboolean("debug_messages"):
-        print("Number of papers:" + str(len(paper_set)))
-    return paper_set
-
-def parse_authors(lines):
-    # parse the comma-separated author list, ignoring lines that are empty and starting with #
-    author_ids = []
-    authors = []
-    for line in lines:
-        if line.startswith("#"):
-            continue
-        if not line.strip():
-            continue
-        author_split = line.split(",")
-        author_ids.append(author_split[1].strip())
-        authors.append(author_split[0].strip())
-    return authors, author_ids
-
+from api_handler import APIHandler
+from paper_processor import PaperProcessor
+from output_handler import OutputHandler
 
 if __name__ == "__main__":
     try:
-        # Get and validate API key
+        # Initialize API key and client
         api_key = get_api_key()
         os.environ["GEMINI_API_KEY"] = api_key
-        
-        # Initialize the LiteLLM client with Instructor
         client = instructor.from_litellm(completion)
-        
-        # now load config.ini
+
+        # Load configuration
         config = configparser.ConfigParser()
         config.read("configs/config.ini")
 
-        # S2_API_KEY = keyconfig["SEMANTIC_SCHOLAR"]["api_key"]
-        S2_API_KEY = None
+        # Initialize modules
+        api_handler = APIHandler()
+        paper_processor = PaperProcessor(config)
+        output_handler = OutputHandler(config)
 
-        # load the author list
+        # Load author list
         with io.open("configs/authors.txt", "r") as fopen:
-            author_names, author_ids = parse_authors(fopen.readlines())
+            author_names, author_ids = paper_processor.parse_authors(fopen.readlines())
         author_id_set = set(author_ids)
 
-        papers = list(get_papers_from_arxiv(config))
-        # dump all papers for debugging
+        # Get papers from arXiv
+        papers = list(paper_processor.get_papers_from_arxiv(config))
 
+        # Get author metadata
         all_authors = set()
         for paper in papers:
             all_authors.update(set(paper.authors))
+        
         if config["OUTPUT"].getboolean("debug_messages"):
-            print("Getting author info for " + str(len(all_authors)) + " authors")
-        all_authors = get_authors(list(all_authors), S2_API_KEY)
+            print(f"Getting author info for {len(all_authors)} authors")
+        
+        all_authors = api_handler.get_authors(list(all_authors))
 
-        if config["OUTPUT"].getboolean("dump_debug_file"):
-            with open(
-                config["OUTPUT"]["output_path"] + "papers.debug.json", "w"
-            ) as outfile:
-                json.dump(papers, outfile, cls=EnhancedJSONEncoder, indent=4)
-            with open(
-                config["OUTPUT"]["output_path"] + "all_authors.debug.json", "w"
-            ) as outfile:
-                json.dump(all_authors, outfile, cls=EnhancedJSONEncoder, indent=4)
-            with open(
-                config["OUTPUT"]["output_path"] + "author_id_set.debug.json", "w"
-            ) as outfile:
-                json.dump(list(author_id_set), outfile, cls=EnhancedJSONEncoder, indent=4)
+        # Dump debug files if configured
+        output_handler.dump_debug_files(papers, all_authors, author_id_set)
 
-        selected_papers, all_papers, sort_dict = filter_by_author(
-            all_authors, papers, author_id_set, config
-        )
-        # Pass the instructor client instead of OpenAI client
-        filter_by_gpt(
-            all_authors,
-            papers,
-            config,
-            client,  # Now passing the instructor client
-            all_papers,
-            selected_papers,
-            sort_dict,
+        # Process papers through filtering pipeline
+        selected_papers, all_papers, sort_dict = paper_processor.process_papers(
+            papers, all_authors, author_id_set, client, config
         )
 
-        # sort the papers by relevance and novelty
-        keys = list(sort_dict.keys())
-        values = list(sort_dict.values())
-        sorted_keys = [keys[idx] for idx in argsort(values)[::-1]]
-        selected_papers = {key: selected_papers[key] for key in sorted_keys}
+        # Sort papers by relevance and novelty
+        selected_papers = paper_processor.sort_papers(selected_papers, sort_dict)
+
         if config["OUTPUT"].getboolean("debug_messages"):
             print(sort_dict)
             print(selected_papers)
 
-        # pick endpoints and push the summaries
+        # Generate outputs
         if len(papers) > 0:
-            if config["OUTPUT"].getboolean("dump_json"):
-                with open(config["OUTPUT"]["output_path"] + "output.json", "w") as outfile:
-                    json.dump(selected_papers, outfile, indent=4)
-            if config["OUTPUT"].getboolean("dump_md"):
-                today = datetime.now().strftime("%Y-%m-%d")
-                # Convert dictionary values to Paper objects if they aren't already
-                formatted_papers = {}
-                for key, paper_dict in selected_papers.items():
-                    if isinstance(paper_dict, dict):
-                        # Create Paper object without url - it will be auto-generated from arxiv_id
-                        paper = Paper(
-                            title=paper_dict['title'],
-                            authors=paper_dict['authors'],
-                            abstract=paper_dict['abstract'],
-                            arxiv_id=paper_dict['arxiv_id']
-                        )
-                        if 'comment' in paper_dict:
-                            paper.comment = paper_dict['comment']
-                        if 'relevance' in paper_dict:
-                            paper.relevance = paper_dict['relevance']
-                        if 'novelty' in paper_dict:
-                            paper.novelty = paper_dict['novelty']
-                        formatted_papers[key] = paper
-                    else:
-                        formatted_papers[key] = paper_dict
-                
-                with open(config["OUTPUT"]["output_path"] + f"{today}_output.md", "w") as f:
-                    f.write(render_md_string(formatted_papers))
-            # only push to slack for non-empty dicts
-            if config["OUTPUT"].getboolean("push_to_slack"):
-                SLACK_KEY = os.environ.get("SLACK_KEY")
-                if SLACK_KEY is None:
-                    print(
-                        "Warning: push_to_slack is true, but SLACK_KEY is not set - not pushing to slack"
-                    )
-                else:
-                    push_to_slack(selected_papers)
+            output_handler.output_json(selected_papers)
+            output_handler.output_markdown(selected_papers)
+            output_handler.output_slack(selected_papers)
 
     except Exception as e:
         print(f"Error initializing application: {str(e)}")
