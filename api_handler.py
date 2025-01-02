@@ -4,7 +4,6 @@ from typing import TypeVar, Generator, List, Dict, Optional
 from requests import Session
 from tqdm import tqdm
 from retry import retry
-from arxiv_scraper import Paper
 
 T = TypeVar("T")
 

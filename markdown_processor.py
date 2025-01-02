@@ -1,6 +1,4 @@
 import markdown
-from markdown.extensions import fenced_code, tables, attr_list, codehilite
-import mdx_math  # for LaTeX math support
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name, TextLexer
@@ -87,7 +85,8 @@ class MarkdownProcessor:
                     highlighted = highlight(code.string or '', lexer, self.formatter)
                     new_pre = BeautifulSoup(highlighted, 'html.parser')
                     pre.replace_with(new_pre)
-                except:
+                except (ValueError, KeyError) as e:
+                    print(f"Error highlighting code block: {e}")
                     continue
         
         # Add CSS classes for styling

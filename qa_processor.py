@@ -1,5 +1,5 @@
 import configparser
-from typing import Dict, List, Optional
+from typing import Dict
 import arxiv
 from arxiv_scraper import Paper
 from litellm import completion
@@ -7,8 +7,6 @@ import instructor
 from pydantic import BaseModel
 from markitdown import MarkItDown
 import os
-import json
-from datetime import datetime
 
 class QaResult(BaseModel):
     question: str
@@ -78,7 +76,6 @@ class QaProcessor:
             
             # Process each question
             qa_results = {}
-            conversation_history = []
 
             # rules 
             base_rules = """

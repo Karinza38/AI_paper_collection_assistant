@@ -1,14 +1,11 @@
 from flask import Flask, render_template, jsonify, request
 import json
 from datetime import datetime
-import configparser
 from arxiv_scraper import Paper
 import os
-import markdown
 from qa_processor import QaProcessor
 from markdown_processor import MarkdownProcessor
 import glob
-from datetime import datetime
 from helpers import get_api_key
 
 app = Flask(__name__, static_folder='static')
@@ -45,26 +42,6 @@ def get_cached_dates():
     dates.sort(key=lambda x: x['date'], reverse=True)
     return dates
 
-def get_cached_dates():
-    """Get list of available cached dates"""
-    cache_files = glob.glob('out/cache/*_output.json')
-    dates = []
-    for file in cache_files:
-        # Extract date from filename (format: YYYY-MM-DD_output.json)
-        date_str = os.path.basename(file).replace('_output.json', '')
-        try:
-            # Verify it's a valid date
-            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-            dates.append({
-                'date': date_str,
-                'display_date': date_obj.strftime('%B %d, %Y')
-            })
-        except ValueError:
-            continue
-    
-    # Sort dates in reverse chronological order
-    dates.sort(key=lambda x: x['date'], reverse=True)
-    return dates
 
 def cache_daily_output():
     """Cache current day's output"""
@@ -316,7 +293,8 @@ def history():
                 with open(json_file, 'r') as f:
                     papers_dict = json.load(f)
                     paper_count = len(papers_dict)
-            except:
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                print(f"Error loading papers: {e}")
                 paper_count = 0
             
             # Add to papers_by_month dictionary

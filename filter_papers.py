@@ -1,10 +1,8 @@
 import configparser
 import dataclasses
 import json
-import re
-from typing import List, Optional
+from typing import List
 
-import retry
 from tqdm import tqdm
 import instructor
 from litellm import completion
@@ -264,7 +262,6 @@ def filter_by_gpt(
 
 
 if __name__ == "__main__":
-    from litellm import validate_environment
 
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
