@@ -9,10 +9,20 @@ from qa_processor import QaProcessor
 from markdown_processor import MarkdownProcessor
 import glob
 from datetime import datetime
+from helpers import get_api_key
 
 app = Flask(__name__, static_folder='static')
-qa_processor = QaProcessor()
-md_processor = MarkdownProcessor()
+# Get API key and initialize processors
+try:
+    # Get and validate API key
+    GEMINI_API_KEY = get_api_key()
+    qa_processor = QaProcessor(api_key=GEMINI_API_KEY)
+    md_processor = MarkdownProcessor()
+except Exception as e:
+    print(f"Error initializing API key: {str(e)}")
+    GEMINI_API_KEY = None
+    qa_processor = None
+    md_processor = MarkdownProcessor()
 
 def get_cached_dates():
     """Get list of available cached dates"""
@@ -95,6 +105,10 @@ def cache_daily_output():
 @app.route('/')
 def index():
     """Main route to display papers"""
+    if not GEMINI_API_KEY or not qa_processor:
+        return render_template('error.html', 
+                             message="API key validation failed. Please check your configuration."), 503
+    
     try:
         # Cache daily output
         cache_daily_output()
@@ -177,11 +191,16 @@ def get_qa(arxiv_id):
         # Get the date parameter or use current date
         date_param = request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
         
+        # Add debug logging
+        print(f"Looking for paper with arxiv_id: {arxiv_id}")
+        
         # Determine which file to load based on date
         if date_param and os.path.exists(f'out/cache/{date_param}_output.json'):
             json_file = f'out/cache/{date_param}_output.json'
         else:
             json_file = 'out/output.json'
+        
+        print(f"Loading papers from: {json_file}")
         
         # Load the paper data
         with open(json_file, 'r') as f:
@@ -190,13 +209,20 @@ def get_qa(arxiv_id):
         # Find the paper with matching arxiv_id
         paper = None
         for p in papers.values():
-            if p.get('ARXIVID', p.get('arxiv_id')) == arxiv_id:
+            paper_arxiv_id = p.get('ARXIVID') or p.get('arxiv_id')
+            print(f"Comparing with paper ID: {paper_arxiv_id}")
+            
+            # Strip version numbers from arxiv IDs for comparison
+            clean_paper_id = paper_arxiv_id.split('v')[0] if paper_arxiv_id else None
+            clean_input_id = arxiv_id.split('v')[0] if arxiv_id else None
+            
+            if clean_paper_id == clean_input_id:
                 paper_data = {
-                    'arxiv_id': p.get('ARXIVID') or p.get('arxiv_id'),
+                    'arxiv_id': paper_arxiv_id,
                     'title': p['title'],
                     'abstract': p['abstract'],
                     'authors': p['authors'],
-                    'url': f"https://arxiv.org/abs/{p.get('ARXIVID') or p.get('arxiv_id')}",
+                    'url': f"https://arxiv.org/abs/{paper_arxiv_id}",
                     'comment': p.get('COMMENT') or p.get('comment'),
                     'relevance': p.get('RELEVANCE') or p.get('relevance'),
                     'novelty': p.get('NOVELTY') or p.get('novelty')
@@ -205,6 +231,7 @@ def get_qa(arxiv_id):
                 break
         
         if not paper:
+            print(f"No paper found matching arxiv_id: {arxiv_id}")
             return jsonify({'error': 'Paper not found'})
         
         # Process Q&A
@@ -224,6 +251,7 @@ def get_qa(arxiv_id):
         return jsonify({'content': html_content})
         
     except Exception as e:
+        print(f"Error in get_qa: {str(e)}")
         return jsonify({'error': str(e)})
 
 # Global variable to track main.py status
@@ -302,11 +330,4 @@ def history():
                              message=f"Error loading history: {str(e)}"), 500
 
 if __name__ == '__main__':
-    # Load API keys from environment or config
-    keyconfig = configparser.ConfigParser()
-    keyconfig.read("configs/keys.ini")
-
-    # Set up Gemini API key if using Gemini
-    GEMINI_API_KEY = keyconfig["GEMINI"]["api_key"]
-    os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
     app.run(debug=True)

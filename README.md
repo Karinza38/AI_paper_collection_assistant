@@ -1,5 +1,20 @@
 # ArXiv Paper Summarizer
 
+## Table of Contents
+- [Features](#features)
+- [Setup](#setup)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Running with GitHub Actions](#running-with-github-actions)
+  - [Running Locally](#running-locally)
+  - [Configuration Details](#configuration-details)
+- [How It Works](#how-it-works)
+- [Contributing](#contributing)
+- [Testing and Improving the LLM Filter](#testing-and-improving-the-llm-filter)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
 This project is a daily ArXiv paper scanner that uses a large language model (LLM) and author matching to identify relevant papers. It can be configured to run daily via GitHub Actions, posting updates to Slack and/or rendering a static website with the results.
 
 A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/gpt_paper_assistant/) running on `cs.CL`.
@@ -44,6 +59,8 @@ A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/g
     -   Set your OpenAI API key or Gemini API key as `GEMINI_API_KEY` in `configs/keys.ini`.
     -   (Optional) Set your Semantic Scholar API key as `S2_API_KEY` in `configs/keys.ini`.
     -   (Optional) Set your Slack API key as `SLACK_KEY` and channel ID as `SLACK_CHANNEL_ID` in your environment variables or GitHub secrets.
+        -   To set environment variables, you can use the `export` command in your terminal (e.g. `export SLACK_KEY=your_slack_key`).
+        -   To set GitHub secrets, go to your repository settings, then "Secrets and variables", then "Actions".
 2.  **Paper Topics**:
     -   Create a `configs/paper_topics.txt` file and fill it with the types of papers you want to follow. See the example in the file for formatting.
 3.  **Authors**:
@@ -63,6 +80,21 @@ A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/g
 
 ### Running Locally
 
+### Docker Usage
+
+1.  Build the Docker image:
+
+    ```bash
+    docker build -t arxiv-paper-summarizer .
+    ```
+
+2.  Run the Docker container:
+
+    ```bash
+    docker run -d -p 8000:8000 -v /path/to/your/configs:/app/configs arxiv-paper-summarizer
+    ```
+    The application will be available at http://localhost:8000.
+
 1.  Set up the environment using `requirements.txt`.
 2.  Set environment variables for `GEMINI_API_KEY`, `SLACK_KEY`, and `SLACK_CHANNEL_ID` (if using Slack).
 3.  Run the main script:
@@ -76,7 +108,7 @@ A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/g
 -   `configs/config.ini`: Contains settings for filtering, output, and model selection.
 -   `configs/paper_topics.txt`: Defines the criteria for paper selection.
 -   `configs/authors.txt`: Lists authors to follow, along with their Semantic Scholar IDs.
--   `configs/questions.txt`: Contains the questions used for Q&A generation.
+-   `configs/questions.txt`: Contains the questions used for Q&A generation. These questions are used by the LLM to generate question-answer pairs for each paper.
 
 ## How It Works
 

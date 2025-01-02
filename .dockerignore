@@ -9,6 +9,7 @@ venv
 out/
 __pycache__/
 *.pyc
+in/
 
 # Additional Docker-specific ignores
 Dockerfile

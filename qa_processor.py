@@ -18,10 +18,14 @@ class PseudocodeResult(BaseModel):
     code: str
 
 class QaProcessor:
-    def __init__(self):
+    def __init__(self, api_key=None):
         # Load config
         self.config = configparser.ConfigParser()
         self.config.read("configs/config.ini")
+        
+        # Set API key in environment if provided
+        if api_key:
+            os.environ["GEMINI_API_KEY"] = api_key
         
         # Initialize client
         self.client = instructor.from_litellm(completion)
@@ -100,44 +104,9 @@ class QaProcessor:
                         f"Q: {q}\nA: {a}" for q, a in qa_results.items()
                     ])
 
-                    # Special handling for the pseudocode question
-                    if "Pseudocode" in question or "code block" in question:
-                        rules = base_rules + """
-                        For the pseudocode implementation:
-                        - First determine if the paper proposes a new method that can be implemented
-                        - If yes, provide a clear, step-by-step pseudocode implementation
-                        - If no, respond with "This paper does not propose a new implementable method."
-                        - Use Python-style pseudocode with clear comments
-                        - Include the code within a markdown code block
-                        """
-                        
-                        prompt = f"""Paper Content:
-                                    {text_content[:50000]}
-
-                                    Task: Analyze if this paper proposes a new method that can be implemented as pseudocode.
-                                    If yes, provide a clear implementation. If no, indicate that.
-
-                                    Rules:
-                                    {rules}
-                                    """
-                        
-                        # For pseudocode question, don't use the QaResult model
-                        try:
-                            response = self.client.chat.completions.create(
-                                model=self.config["SELECTION"]["model"],
-                                messages=[{"role": "user", "content": prompt}],
-                            response_model=PseudocodeResult,
-                            max_retries=3,
-                                timeout=30,
-                            )
-                            qa_results[question] = response.code
-                        except Exception as e:
-                            qa_results[question] = f"No pseudocode found given the rules."
-                        
-                    else:
-                        # Normal questions use the standard format
-                        prompt = f"""Paper Content:
-                                    {text_content[:50000]}
+                    # Normal questions use the standard format
+                    prompt = f"""Paper Content:
+                                {text_content[:50000]}
 
                                     Previous Questions and Answers:
                                     {qa_context}
@@ -149,14 +118,14 @@ class QaProcessor:
 
                                     Please answer the current question, taking into account the previous Q&A if relevant."""
 
-                        response = self.client.chat.completions.create(
-                            model=self.config["SELECTION"]["model"],
-                            response_model=QaResult,
-                            messages=[{"role": "user", "content": prompt}],
-                            max_retries=3,
-                            timeout=30,
-                        )
-                        qa_results[question] = response.answer
+                    response = self.client.chat.completions.create(
+                        model=self.config["SELECTION"]["model"],
+                        response_model=QaResult,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_retries=3,
+                        timeout=30,
+                    )
+                    qa_results[question] = response.answer
                     
                 except Exception as e:
                     qa_results[question] = f"Error getting answer: {str(e)}"

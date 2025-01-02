@@ -4,6 +4,7 @@ import os
 import time
 from datetime import datetime
 
+import litellm
 from openai import OpenAI
 from requests import Session
 from typing import TypeVar, Generator
@@ -18,9 +19,10 @@ from arxiv_scraper import get_papers_from_arxiv_rss_api, Paper, EnhancedJSONEnco
 from filter_papers import filter_by_author, filter_by_gpt
 from parse_json_to_md import render_md_string
 from push_to_slack import push_to_slack
-from markitdown import MarkItDown
 
 import arxiv  # Import the arxiv library
+
+from helpers import get_api_key
 
 T = TypeVar("T")
 
@@ -136,7 +138,15 @@ def get_papers(
 def get_authors(
     all_authors: list[str], S2_API_KEY: str, batch_size: int = 100, **kwargs
 ):
-    # first get the list of all author ids by querying by author names
+    # In debug mode, load from cached file instead of querying API
+    # for debug 
+    debug_file = "/Users/dylanli/repos/gpt_paper_assistant/out/all_authors.debug.json"
+    if os.path.exists(debug_file):
+        with open(debug_file, 'r') as f:
+            debug_authors = json.load(f)
+            return debug_authors
+            
+    # If debug file doesn't exist, fall back to API queries
     author_metadata_dict = {}
     with Session() as session:
         for author in tqdm(all_authors):
@@ -252,103 +262,113 @@ def generate_qa_markdown(paper: Paper, question_answers: dict):
             f.write(f"**A:** {answer}\n\n")
 
 if __name__ == "__main__":
-    # now load config.ini
-    config = configparser.ConfigParser()
-    config.read("configs/config.ini")
+    try:
+        # Get and validate API key
+        api_key = get_api_key()
+        os.environ["GEMINI_API_KEY"] = api_key
+        
+        # Initialize the LiteLLM client with Instructor
+        client = instructor.from_litellm(completion)
+        
+        # now load config.ini
+        config = configparser.ConfigParser()
+        config.read("configs/config.ini")
 
-    # Load API keys from environment or config
-    keyconfig = configparser.ConfigParser()
-    keyconfig.read("configs/keys.ini")
+        # S2_API_KEY = keyconfig["SEMANTIC_SCHOLAR"]["api_key"]
+        S2_API_KEY = None
 
-    # Set up Gemini API key if using Gemini
-    GEMINI_API_KEY = keyconfig["GEMINI"]["api_key"]
-    os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
-    # S2_API_KEY = keyconfig["SEMANTIC_SCHOLAR"]["api_key"]
-    S2_API_KEY = None
+        # load the author list
+        with io.open("configs/authors.txt", "r") as fopen:
+            author_names, author_ids = parse_authors(fopen.readlines())
+        author_id_set = set(author_ids)
 
-    # Initialize the LiteLLM client with Instructor instead of OpenAI
-    client = instructor.from_litellm(completion)
+        papers = list(get_papers_from_arxiv(config))
+        # dump all papers for debugging
 
-    # load the author list
-    with io.open("configs/authors.txt", "r") as fopen:
-        author_names, author_ids = parse_authors(fopen.readlines())
-    author_id_set = set(author_ids)
+        all_authors = set()
+        for paper in papers:
+            all_authors.update(set(paper.authors))
+        if config["OUTPUT"].getboolean("debug_messages"):
+            print("Getting author info for " + str(len(all_authors)) + " authors")
+        all_authors = get_authors(list(all_authors), S2_API_KEY)
 
-    papers = list(get_papers_from_arxiv(config))
-    # dump all papers for debugging
+        if config["OUTPUT"].getboolean("dump_debug_file"):
+            with open(
+                config["OUTPUT"]["output_path"] + "papers.debug.json", "w"
+            ) as outfile:
+                json.dump(papers, outfile, cls=EnhancedJSONEncoder, indent=4)
+            with open(
+                config["OUTPUT"]["output_path"] + "all_authors.debug.json", "w"
+            ) as outfile:
+                json.dump(all_authors, outfile, cls=EnhancedJSONEncoder, indent=4)
+            with open(
+                config["OUTPUT"]["output_path"] + "author_id_set.debug.json", "w"
+            ) as outfile:
+                json.dump(list(author_id_set), outfile, cls=EnhancedJSONEncoder, indent=4)
 
-    all_authors = set()
-    for paper in papers:
-        all_authors.update(set(paper.authors))
-    if config["OUTPUT"].getboolean("debug_messages"):
-        print("Getting author info for " + str(len(all_authors)) + " authors")
-    all_authors = get_authors(list(all_authors), S2_API_KEY)
+        selected_papers, all_papers, sort_dict = filter_by_author(
+            all_authors, papers, author_id_set, config
+        )
+        # Pass the instructor client instead of OpenAI client
+        filter_by_gpt(
+            all_authors,
+            papers,
+            config,
+            client,  # Now passing the instructor client
+            all_papers,
+            selected_papers,
+            sort_dict,
+        )
 
-    if config["OUTPUT"].getboolean("dump_debug_file"):
-        with open(
-            config["OUTPUT"]["output_path"] + "papers.debug.json", "w"
-        ) as outfile:
-            json.dump(papers, outfile, cls=EnhancedJSONEncoder, indent=4)
-        with open(
-            config["OUTPUT"]["output_path"] + "all_authors.debug.json", "w"
-        ) as outfile:
-            json.dump(all_authors, outfile, cls=EnhancedJSONEncoder, indent=4)
-        with open(
-            config["OUTPUT"]["output_path"] + "author_id_set.debug.json", "w"
-        ) as outfile:
-            json.dump(list(author_id_set), outfile, cls=EnhancedJSONEncoder, indent=4)
+        # sort the papers by relevance and novelty
+        keys = list(sort_dict.keys())
+        values = list(sort_dict.values())
+        sorted_keys = [keys[idx] for idx in argsort(values)[::-1]]
+        selected_papers = {key: selected_papers[key] for key in sorted_keys}
+        if config["OUTPUT"].getboolean("debug_messages"):
+            print(sort_dict)
+            print(selected_papers)
 
-    selected_papers, all_papers, sort_dict = filter_by_author(
-        all_authors, papers, author_id_set, config
-    )
-    # Pass the instructor client instead of OpenAI client
-    filter_by_gpt(
-        all_authors,
-        papers,
-        config,
-        client,  # Now passing the instructor client
-        all_papers,
-        selected_papers,
-        sort_dict,
-    )
+        # pick endpoints and push the summaries
+        if len(papers) > 0:
+            if config["OUTPUT"].getboolean("dump_json"):
+                with open(config["OUTPUT"]["output_path"] + "output.json", "w") as outfile:
+                    json.dump(selected_papers, outfile, indent=4)
+            if config["OUTPUT"].getboolean("dump_md"):
+                today = datetime.now().strftime("%Y-%m-%d")
+                # Convert dictionary values to Paper objects if they aren't already
+                formatted_papers = {}
+                for key, paper_dict in selected_papers.items():
+                    if isinstance(paper_dict, dict):
+                        # Create Paper object without url - it will be auto-generated from arxiv_id
+                        paper = Paper(
+                            title=paper_dict['title'],
+                            authors=paper_dict['authors'],
+                            abstract=paper_dict['abstract'],
+                            arxiv_id=paper_dict['arxiv_id']
+                        )
+                        if 'comment' in paper_dict:
+                            paper.comment = paper_dict['comment']
+                        if 'relevance' in paper_dict:
+                            paper.relevance = paper_dict['relevance']
+                        if 'novelty' in paper_dict:
+                            paper.novelty = paper_dict['novelty']
+                        formatted_papers[key] = paper
+                    else:
+                        formatted_papers[key] = paper_dict
+                
+                with open(config["OUTPUT"]["output_path"] + f"{today}_output.md", "w") as f:
+                    f.write(render_md_string(formatted_papers))
+            # only push to slack for non-empty dicts
+            if config["OUTPUT"].getboolean("push_to_slack"):
+                SLACK_KEY = os.environ.get("SLACK_KEY")
+                if SLACK_KEY is None:
+                    print(
+                        "Warning: push_to_slack is true, but SLACK_KEY is not set - not pushing to slack"
+                    )
+                else:
+                    push_to_slack(selected_papers)
 
-    # Load preset questions
-    with open("configs/questions.txt", "r") as f:
-        preset_questions = [line.strip() for line in f.readlines()]
-
-    # Generate question-answer markdown for each selected paper
-    for paper_id in selected_papers:
-        paper = selected_papers[paper_id]
-        question_answers = ask_questions_for_paper(paper, preset_questions, client)
-        if "error" not in question_answers:
-            generate_qa_markdown(paper, question_answers)
-        else:
-            print(f"Skipping QA generation for {paper.arxiv_id} due to error: {question_answers['error']}")
-
-    # sort the papers by relevance and novelty
-    keys = list(sort_dict.keys())
-    values = list(sort_dict.values())
-    sorted_keys = [keys[idx] for idx in argsort(values)[::-1]]
-    selected_papers = {key: selected_papers[key] for key in sorted_keys}
-    if config["OUTPUT"].getboolean("debug_messages"):
-        print(sort_dict)
-        print(selected_papers)
-
-    # pick endpoints and push the summaries
-    if len(papers) > 0:
-        if config["OUTPUT"].getboolean("dump_json"):
-            with open(config["OUTPUT"]["output_path"] + "output.json", "w") as outfile:
-                json.dump(selected_papers, outfile, indent=4)
-        if config["OUTPUT"].getboolean("dump_md"):
-            today = datetime.now().strftime("%Y-%m-%d")
-            with open(config["OUTPUT"]["output_path"] + f"{today}_output.md", "w") as f:
-                f.write(render_md_string(selected_papers))
-        # only push to slack for non-empty dicts
-        if config["OUTPUT"].getboolean("push_to_slack"):
-            SLACK_KEY = os.environ.get("SLACK_KEY")
-            if SLACK_KEY is None:
-                print(
-                    "Warning: push_to_slack is true, but SLACK_KEY is not set - not pushing to slack"
-                )
-            else:
-                push_to_slack(selected_papers)
+    except Exception as e:
+        print(f"Error initializing application: {str(e)}")
+        exit(1)
