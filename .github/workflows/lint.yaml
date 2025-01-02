@@ -22,7 +22,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff
-      - name: Run Ruff
-        run: |
-          ruff check .
-          ruff format --check .
+      - uses: chartboost/ruff-action@v1
+        with:
+          args: check .
+      - uses: chartboost/ruff-action@v1
+        with:
+          args: format --check .
