@@ -17,8 +17,6 @@
 
 This project is a daily ArXiv paper scanner that uses a large language model (LLM) and author matching to identify relevant papers. It can be configured to run daily via GitHub Actions, posting updates to Slack and/or rendering a static website with the results.
 
-A live demo of the daily papers can be seen [here](https://tatsu-lab.github.io/gpt_paper_assistant/) running on `cs.CL`.
-
 ## Features
 
 - **Multi-Source Support**: Currently supports arXiv with plans to integrate HuggingFace Daily Papers
