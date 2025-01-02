@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-
+import re
 
 def render_paper(paper_entry: dict, idx: int) -> str:
     """
@@ -56,12 +56,15 @@ def render_md_string(papers: dict) -> str:
 
     md_string += "---\n"
 
+    def reg_abstract(abstract: str) -> str:
+        return re.sub(r"arXiv:\s*\d+\.\d+v\d+\s*(?:Announce Type:\s*(?:new|replace|cross|withdraw)\s*)?Abstract:\s*", "", abstract)
+
     # Then create the actual content
     for i, (paper_id, paper) in enumerate(papers.items()):
         md_string += f"## {i}. [{paper.title}]({paper.url}) <a id='paper{i}'></a>\n"
         md_string += f"**ArXiv ID:** {paper.arxiv_id}\n"
         md_string += f"**Authors:** {', '.join(paper.authors)}\n\n"
-        md_string += f"**Abstract:** {paper.abstract}\n\n"
+        md_string += f"**Abstract:** {reg_abstract(paper.abstract)}\n\n"
         if hasattr(paper, "comment"):
             md_string += f"**Comment:** {paper.comment}\n"
         if hasattr(paper, "relevance"):
