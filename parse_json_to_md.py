@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import re
 
+
 def render_paper(paper_entry: dict, idx: int) -> str:
     """
     :param paper_entry: is a dict from a json. an example is
@@ -57,7 +58,11 @@ def render_md_string(papers: dict) -> str:
     md_string += "---\n"
 
     def reg_abstract(abstract: str) -> str:
-        return re.sub(r"arXiv:\s*\d+\.\d+v\d+\s*(?:Announce Type:\s*(?:new|replace|cross|withdraw)\s*)?Abstract:\s*", "", abstract)
+        return re.sub(
+            r"arXiv:\s*\d+\.\d+v\d+\s*(?:Announce Type:\s*(?:new|replace|cross|withdraw)\s*)?Abstract:\s*",
+            "",
+            abstract,
+        )
 
     # Then create the actual content
     for i, (paper_id, paper) in enumerate(papers.items()):
@@ -71,15 +76,15 @@ def render_md_string(papers: dict) -> str:
             md_string += f"**Relevance:** {paper.relevance}\n"
         if hasattr(paper, "novelty"):
             md_string += f"**Novelty:** {paper.novelty}\n"
-        
+
         # Add a button for Q&A
-        md_string += f'''
+        md_string += f"""
         <div class="qa-section">
             <button class="qa-button" data-arxiv-id="{paper.arxiv_id}" onclick="return false;">Show Q&A</button>
             <div id="qa-{paper.arxiv_id}" class="qa-content" style="display: none;"></div>
         </div>
-        '''
-        
+        """
+
         md_string += "---\n\n"
 
     # Add the paper selection prompt at the bottom

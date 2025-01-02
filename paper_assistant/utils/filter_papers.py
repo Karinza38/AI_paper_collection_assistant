@@ -262,7 +262,6 @@ def filter_by_gpt(
 
 
 if __name__ == "__main__":
-
     config = configparser.ConfigParser()
     config.read("configs/config.ini")
     # Initialize the LiteLLM client with Instructor

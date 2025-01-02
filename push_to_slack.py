@@ -1,6 +1,7 @@
 """
 Code to render the output.json into a format suitable for a slackbot, and to push it to slack using webhooks
 """
+
 import json
 import os
 from datetime import datetime

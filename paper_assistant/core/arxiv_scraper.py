@@ -28,7 +28,7 @@ class Paper:
 
     # add a hash function using arxiv_id
     def __hash__(self):
-        # __hash__ is a method that returns a hash of the object. 
+        # __hash__ is a method that returns a hash of the object.
         # we can use this to hash the object by its arxiv_id
         return hash(self.arxiv_id)
 
@@ -46,7 +46,7 @@ class Paper:
         RELEVANCE=None,
         novelty=None,
         NOVELTY=None,
-        **kwargs
+        **kwargs,
     ):
         self.arxiv_id = arxiv_id or ARXIVID
         self.title = title

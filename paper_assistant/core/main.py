@@ -39,10 +39,10 @@ def main():
         all_authors = set()
         for paper in papers:
             all_authors.update(set(paper.authors))
-        
+
         if config["OUTPUT"].getboolean("debug_messages"):
             print(f"Getting author info for {len(all_authors)} authors")
-        
+
         all_authors = api_handler.get_authors(list(all_authors))
 
         # Dump debug files if configured

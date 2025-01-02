@@ -6,6 +6,7 @@ from paper_assistant.core.arxiv_scraper import Paper, get_papers_from_arxiv_rss_
 from paper_assistant.utils.filter_papers import filter_by_author, filter_by_gpt
 from paper_assistant.utils.helpers import argsort
 
+
 class PaperProcessor:
     def __init__(self, config: ConfigParser):
         self.config = config
@@ -31,14 +32,20 @@ class PaperProcessor:
             paper_set.update(set(papers))
         return paper_set
 
-    def process_papers(self, papers: List[Paper], all_authors: Dict, author_id_set: Set[str], 
-                      client: Instructor, config: ConfigParser) -> Tuple[Dict, Dict, Dict]:
+    def process_papers(
+        self,
+        papers: List[Paper],
+        all_authors: Dict,
+        author_id_set: Set[str],
+        client: Instructor,
+        config: ConfigParser,
+    ) -> Tuple[Dict, Dict, Dict]:
         """Process papers through filtering pipeline"""
         # First filter by author
         selected_papers, all_papers, sort_dict = filter_by_author(
             all_authors, papers, author_id_set, config
         )
-        
+
         # Then filter by GPT
         filter_by_gpt(
             all_authors,
@@ -49,7 +56,7 @@ class PaperProcessor:
             selected_papers,
             sort_dict,
         )
-        
+
         return selected_papers, all_papers, sort_dict
 
     def sort_papers(self, selected_papers: Dict, sort_dict: Dict) -> Dict:
