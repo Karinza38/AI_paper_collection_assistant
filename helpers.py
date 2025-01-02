@@ -2,6 +2,9 @@ import os
 import configparser
 from litellm import completion, check_valid_key
 
+def argsort(seq):
+    return sorted(range(len(seq)), key=seq.__getitem__)
+
 def validate_api_key(api_key):
     """Validate the API key by making a test request"""
     try:

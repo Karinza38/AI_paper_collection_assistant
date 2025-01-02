@@ -1,10 +1,12 @@
+from typing import Dict, List, Set
 import json
 from datetime import datetime
-from typing import Dict
 from arxiv_scraper import Paper, EnhancedJSONEncoder
 from parse_json_to_md import render_md_string
 from push_to_slack import push_to_slack
 from configparser import ConfigParser
+import os
+
 
 class OutputHandler:
     def __init__(self, config: ConfigParser):

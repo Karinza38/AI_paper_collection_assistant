@@ -2,6 +2,9 @@ from typing import Dict, List, Set, Tuple
 from arxiv_scraper import Paper
 from configparser import ConfigParser
 from instructor import Instructor
+from arxiv_scraper import get_papers_from_arxiv_rss_api
+from filter_papers import filter_by_author, filter_by_gpt
+from helpers import argsort
 
 class PaperProcessor:
     def __init__(self, config: ConfigParser):

@@ -14,9 +14,6 @@ class QaResult(BaseModel):
     question: str
     answer: str
 
-class PseudocodeResult(BaseModel):
-    code: str
-
 class QaProcessor:
     def __init__(self, api_key=None):
         # Load config

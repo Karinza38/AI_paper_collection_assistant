@@ -14,6 +14,8 @@ from arxiv_scraper import Paper
 from arxiv_scraper import EnhancedJSONEncoder
 import os
 
+from helpers import argsort
+
 
 
 
@@ -300,9 +302,6 @@ if __name__ == "__main__":
     print("total cost:" + str(total_cost))
     keys = list(sort_dict.keys())
     values = list(sort_dict.values())
-
-    def argsort(seq):
-        return sorted(range(len(seq)), key=seq.__getitem__)
 
     sorted_keys = [keys[idx] for idx in argsort(values)[::-1]]
     selected_papers = {key: paper_outputs[key] for key in sorted_keys}
