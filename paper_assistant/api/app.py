@@ -10,7 +10,10 @@ from paper_assistant.utils.helpers import get_api_key
 
 
 def create_app():
-    app = Flask(__name__, static_folder="static")
+    app = Flask(__name__, template_folder="/Users/dylanli/repos/gpt_paper_assistant/paper_assistant/templates", static_folder="static")
+    # Enable debug mode
+    app.config['DEBUG'] = True
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
 
     # Get API key and initialize processors
     try:
@@ -85,9 +88,10 @@ def create_app():
     def index():
         """Main route to display papers"""
         if not GEMINI_API_KEY or not qa_processor:
+            reason = "No API key" if not GEMINI_API_KEY else "QA processor not initialized"
             return render_template(
                 "error.html",
-                message="API key validation failed. Please check your configuration.",
+                message=f"API key validation failed. Please check your configuration. Reason: {reason}",
             ), 503
 
         try:
@@ -101,6 +105,7 @@ def create_app():
             available_dates = get_cached_dates()
 
             # Check if output files exist
+            # TODO: link this with a generate function.
             if not os.path.exists("out/output.json") and not available_dates:
                 return render_template(
                     "error.html",
@@ -122,7 +127,7 @@ def create_app():
                 papers_dict = json.load(f)
 
             # Load header content
-            with open("configs/header.md", "r") as f:
+            with open("paper_assistant/config/header.md", "r") as f:
                 header_content = f.read()
 
             # Load paper topics/criteria
@@ -184,9 +189,10 @@ def create_app():
                 markdown_css=markdown_css,
             )
         except Exception as e:
-            print(f"Error in index route: {e}")
+            app.logger.error(f"Error in index route: {str(e)}")
             return render_template(
-                "error.html", message=f"Error loading papers: {str(e)}"
+                "error.html",
+                message="An error occurred while processing the papers. Please try again later.",
             ), 500
 
     @app.route("/qa_progress/<arxiv_id>")

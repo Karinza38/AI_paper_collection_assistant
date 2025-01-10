@@ -7,7 +7,7 @@ import instructor
 from pydantic import BaseModel
 from markitdown import MarkItDown
 import os
-
+from paper_assistant.utils.cache_handler import CacheHandler
 
 class QaResult(BaseModel):
     question: str
@@ -18,7 +18,7 @@ class QaProcessor:
     def __init__(self, api_key=None):
         # Load config
         self.config = configparser.ConfigParser()
-        self.config.read("configs/config.ini")
+        self.config.read("paper_assistant/config/config.ini")
 
         # Set API key in environment if provided
         if api_key:
@@ -28,14 +28,13 @@ class QaProcessor:
         self.client = instructor.from_litellm(completion)
 
         # Load questions
-        with open("configs/questions.txt", "r") as f:
+        with open("paper_assistant/config/questions.txt", "r") as f:
             self.questions = [line.strip() for line in f.readlines() if line.strip()]
 
         # Progress tracking
         self.progress = {}
 
-        # Initialize cache handler
-        from cache_handler import CacheHandler
+
 
         self.cache_handler = CacheHandler("out/qa_cache")
 
