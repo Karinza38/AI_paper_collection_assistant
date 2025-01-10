@@ -10,3 +10,6 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 keys.ini
+# pixi environments
+.pixi
+*.egg-info
