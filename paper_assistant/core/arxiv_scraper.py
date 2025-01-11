@@ -6,7 +6,7 @@ from html import unescape
 from typing import List, Optional
 import re
 import arxiv
-
+from loguru import logger
 import feedparser
 from dataclasses import dataclass
 
@@ -107,13 +107,13 @@ def get_papers_from_arxiv_rss(area: str, config: Optional[dict]) -> List[Paper]:
     )
     if feed.status == 304:
         if (config is not None) and config["OUTPUT"]["debug_messages"]:
-            print("No new papers since " + updated_string + " for " + area)
+            logger.info("No new papers since " + updated_string + " for " + area)
         # if there are no new papers return an empty list
         return [], None, None
     # get the list of entries
     entries = feed.entries
     if len(feed.entries) == 0:
-        print("No entries found for " + area)
+        logger.info("No entries found for " + area)
         return [], None, None
     last_id = feed.entries[0].link.split("/")[-1]
     # parse last modified date
@@ -127,7 +127,7 @@ def get_papers_from_arxiv_rss(area: str, config: Optional[dict]) -> List[Paper]:
         paper_area = paper.tags[0]["term"]
         # ignore papers not in primary area
         if (area != paper_area) and (config["FILTERING"].getboolean("force_primary")):
-            print(f"ignoring {paper.title}")
+            logger.info(f"ignoring {paper.title}")
             continue
         # otherwise make a new paper, for the author field make sure to strip the HTML tags
         authors = [

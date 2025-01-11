@@ -1,7 +1,7 @@
 import os
 import json
 from typing import Dict, Optional
-
+from loguru import logger
 
 class CacheHandler:
     def __init__(self, cache_dir: str):
@@ -21,7 +21,7 @@ class CacheHandler:
                 with open(cache_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"Error reading cache for {cache_key}: {e}")
+                logger.error(f"Error reading cache for {cache_key}: {e}")
         return None
 
     def save_cache_data(self, cache_key: str, data: Dict):
@@ -31,4 +31,4 @@ class CacheHandler:
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Error saving cache for {cache_key}: {e}")
+            logger.error(f"Error saving cache for {cache_key}: {e}")

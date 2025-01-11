@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from paper_assistant.core.arxiv_scraper import Paper
 from paper_assistant.core.arxiv_scraper import EnhancedJSONEncoder
 import os
+from loguru import logger
 
 from paper_assistant.utils.helpers import argsort
 
@@ -97,12 +98,12 @@ def run_and_parse_chatgpt(full_prompt, client, config):
         ], 0.0  # Cost calculation not implemented for litellm
     except Exception as ex:
         if config["OUTPUT"].getboolean("debug_messages"):
-            print("Exception happened " + str(ex))
+            logger.error("Exception happened " + str(ex))
             # check if the api key is valid
             if os.environ.get("GEMINI_API_KEY") is None:
-                print("GEMINI_API_KEY is not set in the environment variables")
+                logger.error("GEMINI_API_KEY is not set in the environment variables")
             else:
-                print(
+                logger.error(
                     f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}"
                 )
         return [], 0.0
@@ -156,13 +157,13 @@ def filter_papers_by_abstract(
                 if paper.arxiv_id not in filtered_set:
                     final_list.append(paper)
                 else:
-                    print("Filtered out paper " + paper.arxiv_id)
+                    logger.info("Filtered out paper " + paper.arxiv_id)
         except Exception as ex:
-            print("Exception happened " + str(ex))
+            logger.error("Exception happened " + str(ex))
             if os.environ.get("GEMINI_API_KEY") is None:
-                print("GEMINI_API_KEY is not set in the environment variables")
+                logger.error("GEMINI_API_KEY is not set in the environment variables")
             else:
-                print(
+                logger.error(
                     f"GEMINI_API_KEY is set in the environment variables: {os.environ.get('GEMINI_API_KEY')}"
                 )
             continue
@@ -211,13 +212,13 @@ def filter_by_gpt(
         # filter first by hindex of authors to reduce costs.
         paper_list = filter_papers_by_hindex(all_authors, papers, config)
         if config["OUTPUT"].getboolean("debug_messages"):
-            print(str(len(paper_list)) + " papers after hindex filtering")
+            logger.info(str(len(paper_list)) + " papers after hindex filtering")
         cost = 0
         paper_list, cost = filter_papers_by_abstract(
             paper_list, config, client, base_prompt, criterion
         )
         if config["OUTPUT"].getboolean("debug_messages"):
-            print(
+            logger.error(
                 str(len(paper_list))
                 + " papers after abstract filtering with cost of $"
                 + str(cost)
@@ -258,7 +259,7 @@ def filter_by_gpt(
             ) as outfile:
                 json.dump(scored_batches, outfile, cls=EnhancedJSONEncoder, indent=4)
         if config["OUTPUT"].getboolean("debug_messages"):
-            print("Total cost: $" + str(all_cost))
+            logger.info("Total cost: $" + str(all_cost))
 
 
 if __name__ == "__main__":
@@ -307,7 +308,7 @@ if __name__ == "__main__":
             }
             sort_dict[jdict["ARXIVID"]] = jdict["RELEVANCE"] + jdict["NOVELTY"]
 
-    print("total cost:" + str(total_cost))
+    logger.info("total cost:" + str(total_cost))
     keys = list(sort_dict.keys())
     values = list(sort_dict.values())
 

@@ -7,7 +7,8 @@ import instructor
 from pydantic import BaseModel
 from markitdown import MarkItDown
 import os
-
+from paper_assistant.utils.cache_handler import CacheHandler
+from loguru import logger
 
 class QaResult(BaseModel):
     question: str
@@ -18,7 +19,7 @@ class QaProcessor:
     def __init__(self, api_key=None):
         # Load config
         self.config = configparser.ConfigParser()
-        self.config.read("configs/config.ini")
+        self.config.read("paper_assistant/config/config.ini")
 
         # Set API key in environment if provided
         if api_key:
@@ -28,14 +29,11 @@ class QaProcessor:
         self.client = instructor.from_litellm(completion)
 
         # Load questions
-        with open("configs/questions.txt", "r") as f:
+        with open("paper_assistant/config/questions.txt", "r") as f:
             self.questions = [line.strip() for line in f.readlines() if line.strip()]
 
         # Progress tracking
         self.progress = {}
-
-        # Initialize cache handler
-        from cache_handler import CacheHandler
 
         self.cache_handler = CacheHandler("out/qa_cache")
 
@@ -55,7 +53,7 @@ class QaProcessor:
                 return result.text_content
             return None
         except Exception as e:
-            print(f"Error getting paper content for {paper.arxiv_id}: {e}")
+            logger.error(f"Error getting paper content for {paper.arxiv_id}: {e}")
             return None
 
     def process_qa(self, paper: Paper, progress_callback=None) -> Dict[str, str]:
@@ -66,7 +64,7 @@ class QaProcessor:
             # Check cache first
             cached_results = self.cache_handler.get_cached_data(paper_id)
             if cached_results:
-                print(f"Using cached Q&A for paper {paper_id}")
+                logger.info(f"Using cached Q&A for paper {paper_id}")
                 return cached_results
 
             # Initialize progress
@@ -133,7 +131,7 @@ class QaProcessor:
             return qa_results
 
         except Exception as e:
-            print(f"Error processing Q&A for paper {paper.arxiv_id}: {e}")
+            logger.error(f"Error processing Q&A for paper {paper.arxiv_id}: {e}")
             return {"error": str(e)}
         finally:
             if paper.arxiv_id in self.progress:

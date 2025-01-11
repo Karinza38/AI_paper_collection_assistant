@@ -3,7 +3,7 @@ authors = ["dylanli <dylan.h.li@outlook.com>"]
 channels = ["conda-forge"]
 description = "Add a short description here"
 name = "AI_paper_collection_assistant"
-platforms = ["linux-64"]
+platforms = ["linux-64", "osx-arm64"]
 version = "0.1.0"
 
 [tasks]
@@ -23,3 +23,4 @@ slack-sdk = ">=3.34.0, <4"
 flask = ">=3.1.0, <4"
 markdown = ">=3.7, <4"
 python-markdown-math = ">=0.8, <0.9"
+pytz = ">=2024.1"
