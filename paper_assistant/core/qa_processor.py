@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from markitdown import MarkItDown
 import os
 from paper_assistant.utils.cache_handler import CacheHandler
+from loguru import logger
 
 class QaResult(BaseModel):
     question: str
@@ -34,8 +35,6 @@ class QaProcessor:
         # Progress tracking
         self.progress = {}
 
-
-
         self.cache_handler = CacheHandler("out/qa_cache")
 
     def get_paper_content(self, paper: Paper) -> str:
@@ -54,7 +53,7 @@ class QaProcessor:
                 return result.text_content
             return None
         except Exception as e:
-            print(f"Error getting paper content for {paper.arxiv_id}: {e}")
+            logger.error(f"Error getting paper content for {paper.arxiv_id}: {e}")
             return None
 
     def process_qa(self, paper: Paper, progress_callback=None) -> Dict[str, str]:
@@ -65,7 +64,7 @@ class QaProcessor:
             # Check cache first
             cached_results = self.cache_handler.get_cached_data(paper_id)
             if cached_results:
-                print(f"Using cached Q&A for paper {paper_id}")
+                logger.info(f"Using cached Q&A for paper {paper_id}")
                 return cached_results
 
             # Initialize progress
@@ -132,7 +131,7 @@ class QaProcessor:
             return qa_results
 
         except Exception as e:
-            print(f"Error processing Q&A for paper {paper.arxiv_id}: {e}")
+            logger.error(f"Error processing Q&A for paper {paper.arxiv_id}: {e}")
             return {"error": str(e)}
         finally:
             if paper.arxiv_id in self.progress:
