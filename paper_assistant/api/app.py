@@ -7,6 +7,7 @@ from paper_assistant.core.qa_processor import QaProcessor
 from paper_assistant.utils.markdown_processor import MarkdownProcessor
 import glob
 from paper_assistant.utils.helpers import get_api_key
+from paper_assistant.utils.cache_handler import CacheHandler
 
 
 def create_app():
@@ -15,6 +16,9 @@ def create_app():
     app.config['DEBUG'] = True
     app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+    # Initialize cache handler
+    cache_handler = CacheHandler("out/cache")
+    
     # Get API key and initialize processors
     try:
         # Get and validate API key
@@ -48,38 +52,30 @@ def create_app():
         return dates
 
     def cache_daily_output():
-        """Cache current day's output"""
+        """Cache current day's output using CacheHandler"""
         global main_progress
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # Only reset progress if main.py is actually running
-        if not os.path.exists("out/output.json"):
-            main_progress = {
-                "running": True,
-                "current": 0,
-                "total": 0,
-                "message": "Starting paper collection...",
-            }
-        else:
-            main_progress = {"running": False, "current": 0, "total": 0, "message": ""}
+        # Simplified progress tracking
+        main_progress = {
+            "running": False,
+            "current": 0,
+            "total": 0,
+            "message": ""
+        }
 
-        # Cache JSON output
+        # Only cache if output.json exists and hasn't been cached today
         if os.path.exists("out/output.json"):
-            os.makedirs("out/cache", exist_ok=True)
-            cache_path = f"out/cache/{today}_output.json"
-            if not os.path.exists(cache_path):
-                # Cache papers
-                with open("out/output.json", "r") as src, open(cache_path, "w") as dst:
-                    dst.write(src.read())
+            # Load and cache papers
+            with open("out/output.json", "r") as f:
+                papers_data = json.load(f)
+                cache_handler.save_cache_data(f"{today}_output", papers_data)
 
-                # Cache authors if the file exists
-                if os.path.exists("out/all_authors.debug.json"):
-                    authors_cache_path = f"out/cache/{today}_authors.json"
-                    with (
-                        open("out/all_authors.debug.json", "r") as src,
-                        open(authors_cache_path, "w") as dst,
-                    ):
-                        dst.write(src.read())
+            # Load and cache authors if available
+            if os.path.exists("out/all_authors.debug.json"):
+                with open("out/all_authors.debug.json", "r") as f:
+                    authors_data = json.load(f)
+                    cache_handler.save_cache_data(f"{today}_authors", authors_data)
 
     # Global variable to track main.py status
     main_progress = {"running": False, "current": 0, "total": 0, "message": ""}
@@ -112,19 +108,20 @@ def create_app():
                     message="No paper data available yet. Please wait for the next scheduled update at 9:00 AM EST.",
                 ), 503
 
-            # Determine which file to load
-            if date_param and os.path.exists(f"out/cache/{date_param}_output.json"):
-                json_file = f"out/cache/{date_param}_output.json"
-                display_date = datetime.strptime(date_param, "%Y-%m-%d").strftime(
-                    "%B %d, %Y"
-                )
+            # Load papers using cache handler
+            if date_param:
+                papers_dict = cache_handler.get_cached_data(f"{date_param}_output")
+                if papers_dict:
+                    display_date = datetime.strptime(date_param, "%Y-%m-%d").strftime("%B %d, %Y")
+                else:
+                    # Fallback to output.json if cache not found
+                    with open("out/output.json", "r") as f:
+                        papers_dict = json.load(f)
+                    display_date = datetime.now().strftime("%B %d, %Y")
             else:
-                json_file = "out/output.json"
+                with open("out/output.json", "r") as f:
+                    papers_dict = json.load(f)
                 display_date = datetime.now().strftime("%B %d, %Y")
-
-            # Load papers from JSON
-            with open(json_file, "r") as f:
-                papers_dict = json.load(f)
 
             # Load header content
             with open("paper_assistant/config/header.md", "r") as f:
@@ -269,25 +266,51 @@ def create_app():
 
     @app.route("/get_authors/<date>")
     def get_authors(date):
-        """Get author data for a specific date"""
+        """Get author data for a specific date using cache handler"""
         try:
-            authors_file = f"out/cache/{date}_authors.json"
-            if os.path.exists(authors_file):
-                with open(authors_file, "r") as f:
-                    return jsonify(json.load(f))
+            authors_data = cache_handler.get_cached_data(f"{date}_authors")
+            if authors_data:
+                return jsonify(authors_data)
             return jsonify({"error": "No author data found for this date"}), 404
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
     @app.route("/history")
     def history():
-        """Show historical data"""
+        """Show historical data organized by month"""
         try:
             dates = get_cached_dates()
-            return render_template("history.html", dates=dates)
+            
+            # Organize dates by month
+            papers_by_month = {}
+            for date in dates:
+                # Convert date string to datetime for month extraction
+                date_obj = datetime.strptime(date['date'], "%Y-%m-%d")
+                month_key = date_obj.strftime("%B %Y")  # e.g., "March 2024"
+                
+                # Add paper count from cache
+                cache_data = cache_handler.get_cached_data(f"{date['date']}_output")
+                paper_count = len(cache_data) if cache_data else 0
+                date['paper_count'] = paper_count
+                
+                # Add to month group
+                if month_key not in papers_by_month:
+                    papers_by_month[month_key] = []
+                papers_by_month[month_key].append(date)
+            
+            # Sort months in reverse chronological order
+            papers_by_month = dict(sorted(
+                papers_by_month.items(),
+                key=lambda x: datetime.strptime(x[0], "%B %Y"),
+                reverse=True
+            ))
+            
+            return render_template("history.html", papers_by_month=papers_by_month)
         except Exception as e:
+            app.logger.error(f"Error in history route: {str(e)}")
             return render_template(
-                "error.html", message=f"Error loading history: {str(e)}"
+                "error.html",
+                message=f"Error loading history: {str(e)}"
             ), 500
 
     return app

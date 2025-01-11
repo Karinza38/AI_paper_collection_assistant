@@ -4,6 +4,10 @@ import configparser
 import io
 from litellm import completion
 import instructor
+from datetime import datetime, timedelta
+import threading
+import time
+import pytz
 
 from paper_assistant.utils.helpers import get_api_key
 from paper_assistant.api.api_handler import APIHandler
@@ -77,9 +81,74 @@ def generate_command(args):
         exit(1)
 
 
+def scheduled_generate(args):
+    """Run generate command at 9 AM Eastern Time daily"""
+    eastern_tz = pytz.timezone('America/New_York')
+    
+    def get_next_run_time():
+        """Calculate the next 9 AM Eastern Time"""
+        now = datetime.now(eastern_tz)
+        next_run = now.replace(hour=9, minute=0, second=0, microsecond=0)
+        
+        # If it's already past 9 AM, schedule for next day
+        if now >= next_run:
+            next_run += timedelta(days=1)
+        
+        return next_run
+    
+    def seconds_until_next_run():
+        """Get seconds until next scheduled run"""
+        now = datetime.now(eastern_tz)
+        next_run = get_next_run_time()
+        return (next_run - now).total_seconds()
+
+    while True:
+        try:
+            # Calculate sleep time until next run
+            sleep_seconds = seconds_until_next_run()
+            print(f"Next paper generation scheduled for {get_next_run_time().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            
+            # Sleep until next scheduled time
+            time.sleep(sleep_seconds)
+            
+            # Run generation
+            print("Starting scheduled paper generation...")
+            generate_command(args)
+            
+        except Exception as e:
+            print(f"Error in scheduled generate: {str(e)}")
+            time.sleep(300)  # Wait 5 minutes before retrying
+
+
 def serve_command(args):
-    """Start the web server."""
+    """Start the web server with scheduled paper generation."""
     try:
+        # Create generate args once for both initial and scheduled runs
+        generate_args = argparse.Namespace(
+            debug=args.debug,
+            config=args.config,
+            authors=args.authors,
+            output_format="json",
+            query=args.query
+        )
+
+        # Check if we need initial generation
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_file = f"out/cache/{today}_output.json"
+        
+        if not os.path.exists(today_file) and not os.path.exists("out/output.json"):
+            print("No papers found for today. Running initial generation...")
+            generate_command(generate_args)
+
+        # Start generate scheduler in background thread
+        scheduler_thread = threading.Thread(
+            target=scheduled_generate,
+            args=(generate_args,),
+            daemon=True
+        )
+        scheduler_thread.start()
+
+        # Start Flask server
         app = create_app()
         port = args.port or 5000
         app.run(host="0.0.0.0", port=port, debug=args.debug)
@@ -100,13 +169,16 @@ def create_parser():
     generate_parser.add_argument("--config", help="Path to config file")
     generate_parser.add_argument("--authors", help="Path to authors file")
     generate_parser.add_argument(
-        "--output-format", help="Output formats (comma-separated: markdown,json,slack)"
+        "--output-format", default="json", help="Output formats (comma-separated: markdown,json,slack)"
     )
     generate_parser.add_argument("--query", help="ArXiv search query")
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Start web server")
     serve_parser.add_argument("--port", type=int, help="Server port (default: 5000)")
+    serve_parser.add_argument("--config", help="Path to config file")
+    serve_parser.add_argument("--authors", help="Path to authors file")
+    serve_parser.add_argument("--query", help="ArXiv search query")
 
     return parser
 
