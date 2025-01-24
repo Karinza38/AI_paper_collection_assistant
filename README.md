@@ -1,4 +1,4 @@
-# ArXiv Paper Summarizer
+ # ArXiv Paper Summarizer
 
 ## Table of Contents
 
