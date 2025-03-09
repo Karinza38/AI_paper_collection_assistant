@@ -125,7 +125,7 @@ jaraco.classes==3.4.0
 jaraco.context==6.0.1
 jaraco.functools==4.1.0
 jedi @ file:///home/conda/feedstock_root/build_artifacts/jedi_1733300866624/work
-Jinja2==3.1.4
+Jinja2==3.1.6
 jiter==0.5.0
 jmespath==1.0.1
 joblib==1.4.2
